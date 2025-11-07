@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企画メニューページ</title>
+    <!-- Tailwind CSSを読み込み -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* フォント設定 (Interを基本とし、日本語フォントをフォールバックに設定) */
+        :root {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+
+    <!-- メインコンテンツコンテナ -->
+    <div class="w-full max-w-sm mx-auto bg-white shadow-xl rounded-2xl p-6 md:p-8 space-y-8 border border-gray-100">
+
+        <!-- ページのタイトル -->
+        <header class="text-center">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
+                企画タイトル<br class="sm:hidden"/>（検討中）
+            </h1>
+            <p class="mt-2 text-sm text-gray-500">
+                - メニューを選択してください -
+            </p>
+        </header>
+
+        <!-- ボタンのグループ -->
+        <div class="space-y-6">
+            
+            <!-- 服装チェックボタン -->
+            <button 
+                onclick="alert('「服装チェック」機能の処理をここに記述します')"
+                class="w-full flex items-center justify-center px-6 py-4 border border-transparent text-lg font-semibold rounded-xl shadow-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50 transition duration-150 ease-in-out transform hover:-translate-y-0.5"
+            >
+                <span class="mr-2">👚</span> 服装チェック
+            </button>
+            
+            <!-- ESアドバイスボタン -->
+            <button 
+                onclick="alert('「ESアドバイス」機能の処理をここに記述します')"
+                class="w-full flex items-center justify-center px-6 py-4 border-2 border-indigo-500 text-lg font-semibold rounded-xl shadow-md text-indigo-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50 transition duration-150 ease-in-out"
+            >
+                <span class="mr-2">📝</span> ESアドバイス
+            </button>
+        </div>
+
+        <!-- フッターや補足情報 (任意) -->
+        <footer class="text-center pt-4">
+            <p class="text-xs text-gray-400">
+                このページはプロトタイプです。
+            </p>
+        </footer>
+
+    </div>
+
+</body>
+</html>
