@@ -1,0 +1,23 @@
+{
+  "name": "senkoukaihatu",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maetani2020/senkoukaihatu.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/maetani2020/senkoukaihatu/issues"
+  },
+  "homepage": "https://github.com/maetani2020/senkoukaihatu#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
