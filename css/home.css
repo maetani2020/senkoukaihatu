@@ -1,0 +1,19 @@
+/* Interフォントを読み込み */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body {
+    font-family: 'Inter', 'Noto Sans JP', sans-serif;
+    /* ★ ヘッダーの高さを 4rem (64px) に変更 */
+    padding-top: 64px; 
+    background-color: #f3f4f6; /* bg-gray-100 */
+}
+
+.feature-card {
+    transition: all 0.3s ease-in-out;
+    transform: scale(1);
+}
+
+.feature-card:hover {
+    transform: scale(1.03);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
