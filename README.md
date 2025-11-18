@@ -23,7 +23,6 @@
 /server.js           APIサーバ（Node.js/Express）
 /package.json        依存管理
 /package-lock.json   依存管理
-/専攻テスト/         テスト用フォルダ
 ```
 
 ---
