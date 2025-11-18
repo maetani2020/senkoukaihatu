@@ -4,49 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>就活サポートアプリ ホーム</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- アイコンライブラリ -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-    
     <link rel="stylesheet" href="css/home.css">
-    
 </head>
 <body class="bg-gray-100 min-h-screen">
-
+    <!-- === ヘッダー === -->
     <nav class="fixed top-0 left-0 right-0 bg-white shadow-md z-50 h-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                
+                <!-- ロゴ -->
                 <a href="home.html" class="flex-shrink-0 flex items-center gap-2">
                     <svg class="h-8 w-8 text-sky-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
                     <span class="text-2xl font-bold text-gray-800">就活サポート</span>
                 </a>
-
+                <!-- ナビゲーション -->
                 <div class="hidden md:flex md:items-center md:gap-8">
-                    <a href="sindan.html" class="font-medium text-gray-600 hover:text-sky-600 transition-colors">
-                        ES/履歴書診断
-                    </a>
-                    <a href="camera.html" class="font-medium text-gray-600 hover:text-purple-600 transition-colors">
-                        AI服装分析
-                    </a>
+                    <a href="sindan.html" class="font-medium text-gray-600 hover:text-sky-600 transition-colors">ES/履歴書診断</a>
+                    <a href="camera.html" class="font-medium text-gray-600 hover:text-purple-600 transition-colors">AI服装分析</a>
                 </div>
-
+                <!-- 右側アイコン/ボタン -->
                 <div class="flex items-center gap-4">
                     <a href="#" class="text-gray-500 hover:text-gray-700">
                         <svg class="lucide lucide-help-circle h-6 w-6" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
                     </a>
-                    <a href="#" class="font-medium text-gray-600 hover:text-sky-600 transition-colors">
-                        ログイン
-                    </a>
-                    <a href="#" class="hidden sm:inline-block bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
-                        会員登録
-                    </a>
+                    <a href="#" class="font-medium text-gray-600 hover:text-sky-600 transition-colors">ログイン</a>
+                    <a href="#" class="hidden sm:inline-block bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">会員登録</a>
                 </div>
-
             </div>
         </div>
     </nav>
+
+    <!-- === メイン === -->
     <div class="w-full max-w-4xl mx-auto py-12 px-6">
-        
         <header class="text-center mb-12 py-8 bg-white rounded-xl shadow-lg">
             <h1 class="text-4xl md:text-5xl font-bold text-sky-600 mb-4">
                 AI就活サポート
@@ -57,9 +49,8 @@
                 AIがあなたの強み発見と身だしなみを強力にサポートします。
             </p>
         </header>
-
         <main class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
+            <!-- ES/履歴書診断 -->
             <a href="sindan.html" class="feature-card bg-white rounded-xl shadow-lg overflow-hidden group">
                 <div class="p-8">
                     <div class="flex items-center justify-center w-16 h-16 bg-sky-100 rounded-full mb-6 group-hover:bg-sky-200 transition-colors">
@@ -70,14 +61,14 @@
                     </h2>
                     <p class="text-gray-600 mb-6">
                         あなたの「社会人基礎力」を20問で診断。自己PRや長所のヒントを見つけます。
-                    </P>
+                    </p>
                     <div class="flex items-center text-sky-600 font-semibold group-hover:text-sky-700">
                         診断をはじめる
                         <svg class="lucide lucide-arrow-right w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                     </div>
                 </div>
             </a>
-
+            <!-- 服装分析 -->
             <a href="camera.html" class="feature-card bg-white rounded-xl shadow-lg overflow-hidden group">
                 <div class="p-8">
                     <div class="flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-6 group-hover:bg-purple-200 transition-colors">
@@ -95,10 +86,10 @@
                     </div>
                 </div>
             </a>
-
         </main>
     </div>
     
+    <!-- === フッター === -->
     <footer class="w-full mt-16 pb-8 text-center text-gray-500">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-gray-200 pt-6">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
