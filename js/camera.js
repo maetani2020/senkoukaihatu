@@ -1,5 +1,7 @@
 // --- 要素取得 ---
 const sceneSelect = document.getElementById('sceneSelect');
+// const areaSelect = document.getElementById('areaSelect'); // ★ 削除
+const areaButtons = document.querySelectorAll('.area-btn'); // ★ 追加
 const btnUseCamera = document.getElementById('btnUseCamera');
 const btnUseUpload = document.getElementById('btnUseUpload');
 const cameraUi = document.getElementById('cameraUi');
@@ -18,13 +20,22 @@ const analysisResult = document.getElementById('analysisResult');
 const errorMessage = document.getElementById('errorMessage');
 const overallScoreEl = document.getElementById('overallScore');
 const sceneForScoreEl = document.getElementById('sceneForScore');
+const timerButtons = document.querySelectorAll('.timer-btn');
+const countdownOverlay = document.getElementById('countdownOverlay');
+const countdownText = document.getElementById('countdownText');
+const retakeButton = document.getElementById('retakeButton');
+const scoreBenchmarkEl = document.getElementById('scoreBenchmark');
 
 // --- 状態管理 ---
 let selectedScene = "";
+let selectedArea = ""; // ★ 変更なし
 let base64Image = null;
 let mimeType = null;
 let cameraStream = null;
 let myRadarChart;
+let selectedTimer = 0; 
+let countdownInterval = null;
+let lastInputMethod = 'upload';
 
 // --- JSON スキーマ定義 ---
 const responseSchema = {
@@ -61,6 +72,23 @@ sceneSelect.addEventListener('change', (e) => {
     checkAnalyzeButtonState();
 });
 
+// ★ 削除
+// areaSelect.addEventListener('change', (e) => {
+//     selectedArea = e.target.value;
+//     checkAnalyzeButtonState();
+// });
+
+// ★ 追加 (エリアボタンのイベントリスナー)
+areaButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        areaButtons.forEach(b => b.classList.remove('selected', 'bg-violet-100', 'border-violet-500', 'text-violet-700', 'font-bold'));
+        btn.classList.add('selected', 'bg-violet-100', 'border-violet-500', 'text-violet-700', 'font-bold');
+        selectedArea = btn.dataset.area;
+        checkAnalyzeButtonState();
+    });
+});
+
+
 btnUseCamera.addEventListener('click', () => {
     selectInputMethod('camera');
     startCamera();
@@ -71,7 +99,17 @@ btnUseUpload.addEventListener('click', () => {
     stopCamera();
 });
 
-captureButton.addEventListener('click', captureImage);
+captureButton.addEventListener('click', handleCaptureClick);
+
+retakeButton.addEventListener('click', handleRetake);
+
+timerButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        timerButtons.forEach(b => b.classList.remove('selected', 'bg-violet-100', 'border-violet-500', 'text-violet-700'));
+        btn.classList.add('selected', 'bg-violet-100', 'border-violet-500', 'text-violet-700');
+        selectedTimer = parseInt(btn.dataset.timer, 10);
+    });
+});
 
 // --- アップロード処理 ---
 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -118,12 +156,14 @@ function handleFile(file) {
         base64Image = dataUrl.split(',')[1];
         checkAnalyzeButtonState();
         hideError();
+        uploadUi.classList.add('hidden'); 
     };
     reader.readAsDataURL(file);
 }
 
 // --- カメラ処理 ---
 function selectInputMethod(method) {
+    lastInputMethod = method;
     if (method === 'camera') {
         cameraUi.classList.remove('hidden');
         uploadUi.classList.add('hidden');
@@ -139,19 +179,18 @@ function selectInputMethod(method) {
 
 async function startCamera() {
     try {
-        // 既存のストリームがあれば停止
         if (cameraStream) {
             cameraStream.getTracks().forEach(track => track.stop());
         }
         cameraStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'user' }, // フロントカメラ
+            video: { facingMode: 'user' }, 
             audio: false 
         });
         videoEl.srcObject = cameraStream;
     } catch (err) {
         console.error("Camera error:", err);
         showError("カメラへのアクセスが許可されませんでした。");
-        selectInputMethod('upload'); // アップロードにフォールバック
+        selectInputMethod('upload'); 
     }
 }
 
@@ -163,26 +202,83 @@ function stopCamera() {
     }
 }
 
-function captureImage() {
+function handleCaptureClick() {
+    if (countdownInterval) return;
+
+    if (selectedTimer > 0) {
+        startCountdown(selectedTimer);
+    } else {
+        takePicture(); 
+    }
+}
+
+function startCountdown(seconds) {
+    captureButton.disabled = true;
+    captureButton.textContent = `${seconds}秒後に撮影します...`;
+    
+    let count = seconds;
+    countdownText.textContent = count;
+    countdownOverlay.classList.add('visible');
+
+    countdownInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            countdownText.textContent = count;
+        } else {
+            clearInterval(countdownInterval);
+            countdownInterval = null; 
+            countdownOverlay.classList.remove('visible');
+            takePicture(); 
+            
+            captureButton.disabled = false;
+            captureButton.textContent = '撮影する';
+        }
+    }, 1000);
+}
+
+function takePicture() {
     const context = captureCanvas.getContext('2d');
     captureCanvas.width = videoEl.videoWidth;
     captureCanvas.height = videoEl.videoHeight;
     context.drawImage(videoEl, 0, 0, videoEl.videoWidth, videoEl.videoHeight);
     
-    const dataUrl = captureCanvas.toDataURL('image/jpeg'); // JPEGで固定
+    const dataUrl = captureCanvas.toDataURL('image/jpeg'); 
     mimeType = 'image/jpeg';
     base64Image = dataUrl.split(',')[1];
     
     imagePreview.src = dataUrl;
     imagePreviewContainer.classList.remove('hidden');
     checkAnalyzeButtonState();
-    stopCamera(); // 撮影したらカメラを止める
-    cameraUi.classList.add('hidden'); // カメラUIを隠す
+    stopCamera(); 
+    cameraUi.classList.add('hidden'); 
 }
+
+function handleRetake() {
+    base64Image = null;
+    mimeType = null;
+    imagePreview.src = "";
+    imageInput.value = null; 
+    
+    // ★ 範囲選択もリセット（ボタンの選択を解除）
+    selectedArea = "";
+    // areaSelect.value = ""; // ★ 削除
+    areaButtons.forEach(b => b.classList.remove('selected', 'bg-violet-100', 'border-violet-500', 'text-violet-700', 'font-bold')); // ★ 追加
+
+    imagePreviewContainer.classList.add('hidden');
+    analyzeButton.disabled = true;
+    hideError();
+    
+    selectInputMethod(lastInputMethod);
+    if (lastInputMethod === 'camera') {
+        startCamera(); 
+    }
+}
+
 
 // --- 分析ボタンの制御 ---
 function checkAnalyzeButtonState() {
-    if (selectedScene && base64Image) {
+    // ★ selectedArea もチェック対象に
+    if (selectedScene && selectedArea && base64Image) {
         analyzeButton.disabled = false;
     } else {
         analyzeButton.disabled = true;
@@ -197,14 +293,28 @@ async function callGeminiApi() {
     analyzeButton.querySelector('span').textContent = '分析中です...';
     hideError();
     analysisResultContainer.classList.add('hidden');
+    retakeButton.disabled = true; 
 
     const apiKey = ""; // Canvasが自動挿入
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
+    // ★ システムプロンプトを厳格な評価者（辛口）に変更
     const systemPrompt = `
-あなたはプロの就活アドバイザーです。ユーザーが選択した場面（シーン）に基づき、提供された画像の服装と身だしなみを評価してください。
-評価項目は「清潔感」「フォーマル度」「サイズ感」「髪型」「表情/姿勢」の5項目を各5点満点で採点し、コメントを付けてください。
-最後に総合点を100点満点で算出し、全体的なフィードバック（良い点、改善提案、総評）を提供してください。
+あなたはプロの就活アドバイザーであり、大手企業の人事部で最終面接官を長年務めた経験を持つ、非常に厳格な評価者です。
+ユーザーは人生の重要な岐路である就職活動に臨んでいます。一切の妥協や甘い評価は許されません。
+提供された画像を、ユーザーが選択した場面（シーン）と範囲に基づき、非常に厳格な基準で評価してください。
+
+評価項目は「清潔感」「フォーマル度」「サイズ感」「髪型」「表情/姿勢」の5項目を各5点満点で採点してください。
+少しでも懸念があれば減点し、その理由を「改善提案」で具体的に、厳しく指摘してください。
+
+最後に総合点を100点満点で算出してください。
+総合点の目安は以下の通りです。
+- 80点以上：合格ライン。ただし、改善点があれば必ず指摘すること。
+- 60-79点：要改善。面接官によっては不採用となるレベル。
+- 59点以下：大幅改善が必要。このままでは面接通過は困難。
+
+全体的なフィードバック（良い点、改善提案、総評）を提供してください。
+「良い点」は当然できているべきこととして簡潔にし、「改善提案」を最も重視し、具体的かつ厳しく、どうすれば改善できるかを明確に指示してください。
 必ず指定されたJSONスキーマに従って回答してください。
 `;
 
@@ -213,7 +323,8 @@ async function callGeminiApi() {
             {
                 role: "user",
                 parts: [
-                    { text: `この服装を「${selectedScene}」の場面を想定して評価してください。` },
+                    // ★ プロンプトに selectedArea を追加
+                    { text: `この服装を「${selectedScene}」の場面を想定して、「${selectedArea}」の範囲で評価してください。` },
                     {
                         inlineData: {
                             mimeType: mimeType,
@@ -256,8 +367,9 @@ async function callGeminiApi() {
         showError(`分析中にエラーが発生しました: ${error.message}`);
     } finally {
         loadingSpinner.classList.add('hidden');
-        analyzeButton.disabled = false;
+        analyzeButton.disabled = false; 
         analyzeButton.querySelector('span').textContent = '再度分析する';
+        retakeButton.disabled = false; 
         stopCamera();
     }
 }
@@ -266,15 +378,31 @@ async function callGeminiApi() {
 function displayResult(data) {
     analysisResultContainer.classList.remove('hidden');
 
-    overallScoreEl.textContent = data.overallScore || 0;
-    sceneForScoreEl.textContent = `（${data.scene || selectedScene}での評価）`;
+    const score = data.overallScore || 0; 
+    overallScoreEl.textContent = score;
+    // ★ sceneForScore に範囲も表示
+    sceneForScoreEl.textContent = `（${data.scene || selectedScene} / ${selectedArea} での評価）`;
+
+    // 総合点に応じた基準点とフィードバックを表示
+    scoreBenchmarkEl.classList.remove('bg-green-100', 'text-green-800', 'bg-yellow-100', 'text-yellow-800', 'bg-red-100', 'text-red-800'); 
+    if (score >= 80) {
+        scoreBenchmarkEl.textContent = '合格ライン (80点以上)';
+        scoreBenchmarkEl.classList.add('bg-green-100', 'text-green-800');
+    } else if (score >= 60) {
+        scoreBenchmarkEl.textContent = '要改善 (合格ライン 80点)';
+        scoreBenchmarkEl.classList.add('bg-yellow-100', 'text-yellow-800');
+    } else {
+        scoreBenchmarkEl.textContent = '大幅改善が必要 (合格ライン 80点)';
+        scoreBenchmarkEl.classList.add('bg-red-100', 'text-red-800');
+    }
+
 
     const ctx = document.getElementById('attireRadarChart').getContext('2d');
     const labels = data.evaluation.map(item => item.item);
     const scores = data.evaluation.map(item => item.score);
 
     if (myRadarChart) {
-        myRadarChart.destroy(); // 既存のチャートを破棄
+        myRadarChart.destroy(); 
     }
     myRadarChart = new Chart(ctx, {
         type: 'radar',
@@ -348,7 +476,8 @@ async function fetchWithBackoff(url, options, maxRetries = 3, baseDelay = 1000) 
                 return response;
             }
             if (response.status === 429) {
-                const delay = baseDelay * Math.pow(2, attempt);
+                // ★★★ 修正: baseDelay -> attempt
+                const delay = baseDelay * Math.pow(2, attempt); 
                 await new Promise(resolve => setTimeout(resolve, delay));
                 attempt++;
             } else {
@@ -358,7 +487,8 @@ async function fetchWithBackoff(url, options, maxRetries = 3, baseDelay = 1000) 
             if (attempt + 1 >= maxRetries) {
                 throw error;
             }
-            const delay = baseDelay * Math.pow(2, attempt);
+            // ★★★ 修正: (ここは元々正しかったですが、念のため)
+            const delay = baseDelay * Math.pow(2, attempt); 
             await new Promise(resolve => setTimeout(resolve, delay));
             attempt++;
         }
@@ -370,4 +500,6 @@ async function fetchWithBackoff(url, options, maxRetries = 3, baseDelay = 1000) 
 document.addEventListener('DOMContentLoaded', () => {
     selectInputMethod('upload'); // デフォルトはアップロード
     lucide.createIcons();
+    // デフォルトのタイマーボタン（なし）を選択状態にする
+    timerButtons[0].classList.add('selected', 'bg-violet-100', 'border-violet-500', 'text-violet-700');
 });

@@ -183,7 +183,7 @@ function calculateStage2Result() {
     const countB = stage2Questions[topCategory].length - countA;
 
     if (topCategory === 'think') finalElement = (countA >= countB) ? '課題発見力' : '計画力';
-    else if (topCategory === 'action') finalElement = (countA >= countB) ? '実行力' : '働きかけ力';
+    else if (topCategory === 'action') finalElement = (countA >= countV) ? '実行力' : '働きかけ力';
     else if (topCategory === 'team') finalElement = (countA >= countB) ? '傾聴力' : '発信力';
     
     renderLoading();
@@ -229,63 +229,114 @@ function renderResult() {
             <div class="mt-10 pt-6 border-t">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-6">
                     <svg class="lucide lucide-edit w-6 h-6 inline-block mr-2 text-sky-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    自己PRへの活かし方
-                </h2>
-                <div class="space-y-6">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-700">② 方向性</h3>
-                        <p class="text-gray-600">${result.direction}</p>
+                            自己PRへの活かし方
+                        </h2>
+                        <div class="space-y-6">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-700">② 方向性</h3>
+                                <p class="text-gray-600">${result.direction}</p>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-700">③ 構造・例文</h3>
+                                <div class="text-gray-600 bg-gray-50/50 p-4 rounded-lg border">${result.example}</div>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-700">④ アドバイス</h3>
+                                <p class="text-gray-600">${result.advice}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-700">③ 構造・例文</h3>
-                        <div class="text-gray-600 bg-gray-50/50 p-4 rounded-lg border">${result.example}</div>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-700">④ アドバイス</h3>
-                        <p class="text-gray-600">${result.advice}</p>
-                    </div>
+                    <button id="restartButton" class="w-full mt-10 text-lg font-semibold bg-gray-200 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-300 transition-colors">
+                        もう一度診断する
+                    </button>
                 </div>
-            </div>
-            <button id="restartButton" class="w-full mt-10 text-lg font-semibold bg-gray-200 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-300 transition-colors">
-                もう一度診断する
-            </button>
-        </div>
-    `;
+            `;
 
-    const ctx = bunsekiContent.querySelector('#resultRadarChart').getContext('2d');
-    if (radarChartInstance) radarChartInstance.destroy();
-    radarChartInstance = new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: ['前に踏み出す力', '考え抜く力', 'チームで働く力'],
-            datasets: [{
-                label: 'あなたの傾向',
-                data: [stage1Scores.action, stage1Scores.think, stage1Scores.team],
-                backgroundColor: 'rgba(56, 189, 248, 0.2)',
-                borderColor: 'rgba(14, 165, 233, 1)',
-                borderWidth: 2,
-                pointBackgroundColor: 'rgba(14, 165, 233, 1)'
-            }]
-        },
-        options: {
-            scales: { r: { angleLines: { display: true }, suggestedMin: 0, suggestedMax: 8, ticks: { stepSize: 2 } } },
-            plugins: { legend: { display: false } }
+            const ctx = bunsekiContent.querySelector('#resultRadarChart').getContext('2d');
+            if (radarChartInstance) radarChartInstance.destroy();
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['前に踏み出す力', '考え抜く力', 'チームで働く力'],
+                    datasets: [{
+                        label: 'あなたの傾向',
+                        data: [stage1Scores.action, stage1Scores.think, stage1Scores.team],
+                        backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                        borderColor: 'rgba(14, 165, 233, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(14, 165, 233, 1)'
+                    }]
+                },
+                options: {
+                    scales: { r: { angleLines: { display: true }, suggestedMin: 0, suggestedMax: 8, ticks: { stepSize: 2 } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+            bunsekiContent.querySelector('#restartButton').addEventListener('click', startStage1);
+            // アイコンを再描画
+            lucide.createIcons();
         }
-    });
-    bunsekiContent.querySelector('#restartButton').addEventListener('click', startStage1);
-    // アイコンを再描画
-    lucide.createIcons();
-}
 
-function startStage1() {
-    stage1Scores = { action: 0, think: 0, team: 0 };
-    currentStage1Question = 0;
-    renderStage1Question();
+        function startStage1() {
+            stage1Scores = { action: 0, think: 0, team: 0 };
+            currentStage1Question = 0;
+            renderStage1Question();
+        }
+        
+        // --- 初期化実行 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderStart();
+            // アイコンを描画
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
 }
+あれ、sindan.htmlの
+<div class="hidden md:flex md:items-center md:gap-8">
+                    <a href="sindan.html" class="font-medium text-gray-600 hover:text-sky-600 transition-colors">
+                        ES/履歴書診断
+                    </a>
+                    <a href="camera.html" class="font-medium text-gray-600 hover:text-purple-600 transition-colors">
+                        AI服装分析
+                    </a>
+                </div>
+の部分が
+<div class="flex items-center">
+                    <a href="home.html" class="flex items-center text-gray-600 hover:text-sky-600 transition-colors">
+                        <svg class="lucide lucide-arrow-left w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                        ホームに戻る
+                    </a>
+                </div>
+になってる
 
-// --- 初期化実行 ---
-document.addEventListener('DOMContentLoaded', () => {
-    renderStart();
-    // アイコンを描画
-    lucide.createIcons();
-});
+home.htmlの
+<div class="flex items-center gap-4">
+                    <a href="#" class="text-gray-500 hover:text-gray-700">
+                        <svg class="lucide lucide-help-circle h-6 w-6" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                    </a>
+                    <a href="#" class="font-medium text-gray-600 hover:text-sky-600 transition-colors">
+                        ログイン
+                    </a>
+                    <a href="#" class="hidden sm:inline-block bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                        会員登録
+                    </a>
+                </div>
+の部分が
+<div class="flex items-center">
+                    <a href="home.html" class="flex items-center text-gray-600 hover:text-sky-600 transition-colors">
+                        <svg class="lucide lucide-arrow-left w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                        ホームに戻る
+                    </a>
+                </div>
+になってる
+
+camera.htmlの
+<div class="flex items-center">
+                    <a href="home.html" class="flex items-center text-gray-600 hover:text-sky-600 transition-colors">
+                        <svg class="lucide lucide-arrow-left w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                        ホームに戻る
+                    </a>
+                </div>
+はあってる
