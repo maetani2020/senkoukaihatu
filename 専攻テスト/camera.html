@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI服装分析 - 就活サポート</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- lucide (アイコン) -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <!-- Chart.js (レーダーチャート用) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js用のデータラベルプラグインを読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            padding-top: 64px; 
+            background-color: #f3ffec; /* 薄いグリーン */
+        }
+        .drag-over { border-color: #6d28d9; background-color: #f5f3ff; }
+        /* カスタムスタイルを調整 */
+        #analysisResult h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; margin-top: 1.5rem; }
+        .input-method-btn.active {
+            background-color: #10b981; /* エメラルドグリーン */
+            color: white;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+        }
+        .input-method-btn {
+            transition: all 0.2s;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- ヘッダー -->
+    <header class="fixed top-0 left-0 w-full bg-white shadow-md z-10">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-gray-800">就活ファッションAI診断</h2>
+            <div id="statusIndicator" class="text-sm px-3 py-1 rounded-full bg-gray-200 text-gray-600 font-medium">準備完了</div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <div class="max-w-4xl mx-auto p-4 sm:p-8">
+        
+        <!-- 入力方法の選択 -->
+        <div class="mb-8 p-4 bg-white rounded-xl shadow-lg">
+            <h3 class="text-lg font-bold text-gray-700 mb-4">1. 画像の準備</h3>
+            <div class="flex space-x-4 mb-4">
+                <button id="uploadBtn" onclick="selectInputMethod('upload')" class="input-method-btn active flex-1 p-3 rounded-lg flex items-center justify-center border border-gray-300">
+                    <i data-lucide="upload" class="w-5 h-5 mr-2"></i> ファイルから
+                </button>
+                <button id="cameraBtn" onclick="selectInputMethod('camera')" class="input-method-btn flex-1 p-3 rounded-lg flex items-center justify-center border border-gray-300">
+                    <i data-lucide="camera" class="w-5 h-5 mr-2"></i> カメラで撮影
+                </button>
+            </div>
+
+            <!-- アップロードエリア (デフォルト表示) -->
+            <div id="uploadInput" class="space-y-4">
+                <input type="file" id="imageFileInput" accept="image/*" class="w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 p-2" onchange="previewImage(event)">
+            </div>
+
+            <!-- カメラエリア (非表示) -->
+            <div id="cameraInput" class="hidden space-y-4">
+                <video id="video" class="w-full max-w-md mx-auto bg-gray-200 rounded-lg shadow-inner" autoplay></video>
+                <canvas id="canvas" class="hidden"></canvas>
+                <div class="flex justify-center space-x-4">
+                    <button onclick="startCamera()" id="startCamBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center transition duration-150 ease-in-out">
+                        <i data-lucide="video" class="w-5 h-5 mr-2"></i>カメラ開始
+                    </button>
+                    <button onclick="captureImage()" id="captureBtn" class="hidden bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center transition duration-150 ease-in-out">
+                        <i data-lucide="camera" class="w-5 h-5 mr-2"></i>撮影
+                    </button>
+                </div>
+            </div>
+            
+            <div id="imagePreviewContainer" class="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50 hidden">
+                <h4 class="text-sm font-medium text-gray-600 mb-2">プレビュー:</h4>
+                <img id="currentImagePreview" class="max-w-full h-auto mx-auto rounded-md shadow-md" style="max-height: 250px;" src="" alt="選択された画像">
+            </div>
+        </div>
+
+        <!-- TPO情報と診断実行 -->
+        <div class="p-6 bg-white rounded-xl shadow-lg space-y-4">
+            <h3 class="text-lg font-bold text-gray-700 border-b pb-1">2. TPO情報の入力と診断</h3>
+            <div>
+                <label for="tpoInput" class="block text-sm font-medium text-gray-700">TPO情報 (状況を具体的に)</label>
+                <textarea id="tpoInput" rows="3" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 text-sm" placeholder="例: 日付: 2025年12月1日 10:00, 場所: 大手メーカーの最終面接, 目的: 正社員採用"></textarea>
+            </div>
+
+            <button onclick="startAnalysisFromButton()" id="analyzeButton" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg shadow-md transition duration-150 ease-in-out disabled:opacity-50" disabled>
+                <i data-lucide="bot" class="w-5 h-5 mr-2 inline-block"></i> AIに診断してもらう
+            </button>
+            <div id="loadingIndicator" class="hidden text-center text-green-600 font-medium">
+                <svg class="animate-spin h-5 w-5 text-green-500 inline-block mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Geminiが分析中です...
+            </div>
+        </div>
+
+        <!-- 結果表示エリア -->
+        <div id="results" class="hidden mt-8 border-t pt-6">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">AI判定結果</h2>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- レーダーチャート表示エリア -->
+                <div class="bg-white p-4 rounded-xl shadow-lg border border-green-100">
+                    <h3 class="text-lg font-medium text-gray-700 mb-4 flex items-center">
+                        <i data-lucide="trending-up" class="w-5 h-5 mr-2 text-green-600"></i> スコアサマリー
+                    </h3>
+                    <div class="w-full" style="height: 300px;">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 総合評価とアドバイス -->
+                <div class="bg-white p-4 rounded-xl shadow-lg border border-green-100">
+                    <h3 class="text-lg font-medium text-gray-700 mb-4 flex items-center">
+                         <i data-lucide="speech" class="w-5 h-5 mr-2 text-green-600"></i> 総合評価とアドバイス
+                    </h3>
+                    <div id="adviceOutput" class="space-y-3">
+                        <p class="font-bold text-2xl mb-2 flex items-center">総合評価: <span id="overallJudgment" class="ml-2 px-3 py-1 rounded-full text-white"></span></p>
+                        <div id="adviceText" class="text-gray-700 text-sm bg-green-50 p-3 rounded-lg border border-green-200"></div>
+                    </div>
+                    
+                    <h3 class="text-lg font-medium text-gray-700 mt-6 mb-2">生JSONデータ</h3>
+                    <pre id="scoreOutput" class="bg-gray-100 p-2 rounded-lg text-xs overflow-x-auto h-32"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- エラー表示エリア -->
+        <div id="errorDisplay" class="hidden mt-8 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <strong class="font-bold">エラーが発生しました: </strong>
+            <span id="errorMessage" class="block sm:inline"></span>
+        </div>
+    </div>
+    
+    <script>
+        // --------------------------------------------------------
+        // --- AI判定コアロジック (統合部分) ---
+        // --------------------------------------------------------
+
+        // 設定
+        const MODEL_NAME = "gemini-2.5-flash-preview-09-2025";
+        
+        // ★★★ ここにAPIキーを貼り付けてください ★★★
+        // 例: const API_KEY = "AIzaSyAW2igWAMv64eSo1Wwfed-lJKpIqrPnu9Q";
+        // 注意: APIキーは外部に公開されないように注意してください。
+        const API_KEY = "AIzaSyAk4kp7CS4XLCub3j2VkTJlN0iECitqH_w"; 
+        // ★★★ ------------------------------ ★★★
+        
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
+        
+        let currentImageBase64 = null;
+        let chartInstance = null; // Chart.jsインスタンスを保持する変数
+
+        // 評価軸のJSONスキーマ定義（リーダー承認済み）
+        const RESPONSE_SCHEMA = {
+            type: "OBJECT",
+            properties: {
+                scores: {
+                    type: "OBJECT",
+                    description: "レーダーチャート用の5つの評価軸スコア (1-5点)",
+                    properties: {
+                        "清潔感": { type: "NUMBER", minimum: 1, maximum: 5 },
+                        "服装の色": { type: "NUMBER", minimum: 1, maximum: 5 },
+                        "季節感": { type: "NUMBER", minimum: 1, maximum: 5 },
+                        "柄": { type: "NUMBER", minimum: 1, maximum: 5 },
+                        "基本ルール": { type: "NUMBER", minimum: 1, maximum: 5 } // ジャケット+襟付きシャツ+パンツ
+                    },
+                    required: ["清潔感", "服装の色", "季節感", "柄", "基本ルール"]
+                },
+                advice_text: {
+                    type: "STRING",
+                    description: "ユーザーへの具体的な改善アドバイスと良い点についてのコメント。"
+                },
+                overall_judgment: {
+                    type: "STRING",
+                    description: "総合的な評価 (例: A+, B, C-)"
+                }
+            },
+            required: ["scores", "advice_text", "overall_judgment"]
+        };
+        
+        // UI要素の取得
+        const imageFileInput = document.getElementById('imageFileInput');
+        const tpoInput = document.getElementById('tpoInput');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const resultsDiv = document.getElementById('results');
+        const scoreOutput = document.getElementById('scoreOutput');
+        const overallJudgment = document.getElementById('overallJudgment');
+        const adviceText = document.getElementById('adviceText');
+        const errorDisplay = document.getElementById('errorDisplay');
+        const errorMessage = document.getElementById('errorMessage');
+        const currentImagePreview = document.getElementById('currentImagePreview');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const videoElement = document.getElementById('video');
+        const canvasElement = document.getElementById('canvas');
+        const startCamBtn = document.getElementById('startCamBtn');
+        const captureBtn = document.getElementById('captureBtn');
+
+        /**
+         * エラーメッセージをUIに表示
+         * @param {string} message - 表示するエラーメッセージ
+         */
+        function displayError(message) {
+            errorDisplay.classList.remove('hidden');
+            errorMessage.textContent = message;
+            analyzeButton.disabled = false;
+            loadingIndicator.classList.add('hidden');
+            document.getElementById('statusIndicator').textContent = 'エラー';
+            document.getElementById('statusIndicator').className = 'text-sm px-3 py-1 rounded-full bg-red-100 text-red-700 font-medium';
+        }
+
+        /**
+         * ファイルをBase64文字列に変換する
+         * @param {File} file - 入力ファイル
+         * @returns {Promise<{data: string, mimeType: string}>} Base64データとMIMEタイプ
+         */
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const parts = reader.result.split(',');
+                    const base64String = parts[1];
+                    const mimeType = file.type;
+                    resolve({ data: base64String, mimeType: mimeType });
+                };
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        /**
+         * Base64データをData URIに変換してプレビューに表示し、グローバル変数に保存
+         * @param {string} base64Data - Base64エンコードされたデータ
+         * @param {string} mimeType - 画像のMIMEタイプ
+         */
+        function setPreviewImage(base64Data, mimeType) {
+            const dataUri = `data:${mimeType};base64,${base64Data}`;
+            currentImagePreview.src = dataUri;
+            currentImageBase64 = { data: base64Data, mimeType: mimeType };
+            imagePreviewContainer.classList.remove('hidden');
+            // 画像がセットされたら診断ボタンを有効化
+            analyzeButton.disabled = false;
+            document.getElementById('statusIndicator').textContent = '画像準備完了';
+            document.getElementById('statusIndicator').className = 'text-sm px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-medium';
+        }
+
+
+        // --- UI操作ロジック ---
+
+        /**
+         * 入力方法の切り替え
+         */
+        function selectInputMethod(method) {
+            const uploadDiv = document.getElementById('uploadInput');
+            const cameraDiv = document.getElementById('cameraInput');
+            
+            document.querySelectorAll('.input-method-btn').forEach(btn => btn.classList.remove('active'));
+
+            if (method === 'upload') {
+                uploadDiv.classList.remove('hidden');
+                cameraDiv.classList.add('hidden');
+                document.getElementById('uploadBtn').classList.add('active');
+                // カメラ停止
+                stopCamera();
+            } else if (method === 'camera') {
+                uploadDiv.classList.add('hidden');
+                cameraDiv.classList.remove('hidden');
+                document.getElementById('cameraBtn').classList.add('active');
+            }
+        }
+        
+        /**
+         * ファイル入力時のプレビュー (API利用のトリガー 1/2)
+         */
+        async function previewImage(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                currentImageBase64 = null;
+                imagePreviewContainer.classList.add('hidden');
+                analyzeButton.disabled = true;
+                return;
+            }
+            try {
+                const { data: base64Data, mimeType } = await fileToBase64(file);
+                setPreviewImage(base64Data, mimeType);
+            } catch (e) {
+                displayError("ファイルの読み込み中にエラーが発生しました。");
+            }
+        }
+        
+        /**
+         * カメラ開始
+         */
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                videoElement.srcObject = stream;
+                videoElement.classList.remove('hidden');
+                startCamBtn.classList.add('hidden');
+                captureBtn.classList.remove('hidden');
+            } catch (err) {
+                displayError("カメラのアクセスを許可してください: " + err.message);
+                videoElement.classList.add('hidden');
+                startCamBtn.classList.remove('hidden');
+                captureBtn.classList.add('hidden');
+            }
+        }
+        
+        /**
+         * カメラ停止
+         */
+        function stopCamera() {
+            if (videoElement.srcObject) {
+                videoElement.srcObject.getTracks().forEach(track => track.stop());
+                videoElement.srcObject = null;
+            }
+            captureBtn.classList.add('hidden');
+            startCamBtn.classList.remove('hidden');
+            // videoElement.classList.add('hidden'); // プレビューとして残すため、ここでは非表示にしない
+        }
+
+        /**
+         * 画像撮影とBase64変換 (API利用のトリガー 2/2)
+         */
+        function captureImage() {
+            const video = videoElement;
+            const canvas = canvasElement;
+            const context = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // JPEG形式でBase64データを取得
+            const dataUri = canvas.toDataURL('image/jpeg', 0.9); 
+            const base64Data = dataUri.split(',')[1];
+            const mimeType = 'image/jpeg';
+            
+            setPreviewImage(base64Data, mimeType);
+            // 撮影後、カメラを自動停止
+            stopCamera(); 
+        }
+
+        /**
+         * 診断ボタン押下時のエントリーポイント
+         */
+        function startAnalysisFromButton() {
+             // currentImageBase64がセットされているか確認して、analyzeClothingを実行
+            if (currentImageBase64) {
+                analyzeClothing(currentImageBase64.data, currentImageBase64.mimeType);
+            } else {
+                displayError("診断する画像が選択されていません。画像をアップロードまたは撮影してください。");
+            }
+        }
+
+        // --- APIリトライロジック ---
+        // 開発の安定性を高めるため、エラー時に自動で再試行します。
+        async function fetchWithBackoff(payload, maxRetries = 5) {
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        return await response.json();
+                    }
+                    
+                    // 429 Too Many Requests や 5xx エラーの場合、リトライを試みる
+                    if (response.status === 429 || response.status >= 500) {
+                        throw new Error(`API error: Status ${response.status}. Retrying...`);
+                    }
+                    
+                    // その他のエラーは即座に失敗
+                    const errorJson = await response.json();
+                    throw new Error(`API Request Failed: ${errorJson.error?.message || response.statusText}`);
+
+                } catch (error) {
+                    if (attempt === maxRetries - 1) {
+                        // 最終リトライで失敗
+                        throw error;
+                    }
+                    
+                    // 指数関数的バックオフ（1秒, 2秒, 4秒...）
+                    const delay = Math.pow(2, attempt) * 1000;
+                    console.warn(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms. Error: ${error.message}`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+            // ここに到達した場合、リトライ回数を使い切ったことを示すエラーを投げる
+            throw new Error("API呼び出しが最大リトライ回数を超えて失敗しました。時間を置いて再度お試しください。");
+        }
+
+
+        // --- メインのAI分析処理（APIを使う場所） ---
+
+        /**
+         * メインの分析処理。Base64データとMIMEタイプを受け取る。
+         */
+        async function analyzeClothing(base64Data, mimeType) {
+            // UIリセット
+            errorDisplay.classList.add('hidden');
+            resultsDiv.classList.add('hidden');
+            analyzeButton.disabled = true;
+            loadingIndicator.classList.remove('hidden');
+            document.getElementById('statusIndicator').textContent = '分析中...';
+            document.getElementById('statusIndicator').className = 'text-sm px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 font-medium';
+
+
+            const tpo = tpoInput.value.trim();
+
+            if (API_KEY === "YOUR_GEMINI_API_KEY_HERE" || API_KEY === "") {
+                displayError("APIキーが設定されていません。コード内の API_KEY 変数に取得したキーを貼り付けてください。");
+                return;
+            }
+
+            if (tpo === '') {
+                displayError("TPO情報を入力してください。");
+                return;
+            }
+
+            try {
+                // メンバーBが調整した最終プロンプト
+                const systemPrompt = 
+                    `あなたは世界的なファッションアナリストです。提供された服装の画像とTPO情報（状況、季節、場所など）を分析し、以下の5つの評価軸（各1〜5点）で採点と具体的なアドバイスをJSON形式で提供してください。
+                    
+                    【評価軸の定義 - 5点満点】
+                    1. 清潔感: 服装のシワ、汚れ、手入れが行き届いているか。乱れていないか。(5点:完璧に整っている / 1点:明らかに汚い、シワがひどい)
+                    2. 服装の色: TPO、季節、肌色との調和、色の使い方。全体のカラーバランスは適切か。(5点:完璧に調和している / 1点:TPO無視、派手すぎる)
+                    3. 季節感: 服装の素材や厚みが、提供された日付・季節と合っているか。素材の選び方。(5点:季節に最適 / 1点:季節外れで不快感を与える)
+                    4. 柄: 柄のサイズ、種類、TPOとの適合性、他のアイテムとの柄の干渉。(5点:TPOに合い、調和している / 1点:TPO無視、柄同士が喧嘩している)
+                    5. 基本ルール: ビジネスやフォーマルな場で求められる基本（ジャケット、襟付きシャツ、パンツの組み合わせ）を満たしているか。満たしていない場合は減点。(5点:ルール完璧 / 1点:ルールを完全に無視)
+                    
+                    【TPO情報】
+                    ${tpo}
+                    
+                    回答は必ず、responseSchemaで定義されたJSON形式のみで行ってください。アドバイスは、良い点と改善点を具体的に記述し、総合評価（A, B, Cなどのアルファベット）を含めてください。`;
+                    
+                const userPrompt = "添付された服装の画像を分析し、上記の基準に基づき採点とアドバイスを日本語で行ってください。";
+
+
+                const payload = {
+                    contents: [
+                        {
+                            role: "user",
+                            parts: [
+                                { text: userPrompt },
+                                {
+                                    inlineData: {
+                                        mimeType: mimeType,
+                                        data: base64Data
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    systemInstruction: {
+                        parts: [{ text: systemPrompt }]
+                    },
+                    // JSON出力を強制する設定（重要！）
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: RESPONSE_SCHEMA
+                    }
+                };
+
+                // ★★★ ここでAPIを呼び出しています ★★★
+                const apiResponse = await fetchWithBackoff(payload);
+                // ★★★ ------------------------- ★★★
+                
+                // レスポンスの解析
+                const jsonText = apiResponse.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!jsonText) {
+                     throw new Error("APIから有効なJSON応答がありませんでした。");
+                }
+                
+                const parsedJson = JSON.parse(jsonText);
+                displayResults(parsedJson);
+                
+                document.getElementById('statusIndicator').textContent = '診断完了';
+                document.getElementById('statusIndicator').className = 'text-sm px-3 py-1 rounded-full bg-green-100 text-green-700 font-medium';
+
+            } catch (e) {
+                console.error("Analysis Error:", e);
+                displayError(e instanceof Error ? e.message : "不明なエラーが発生しました。");
+            } finally {
+                analyzeButton.disabled = false;
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        // --- 結果の描画ロジック ---
+
+        /**
+         * 判定結果をUIに表示し、レーダーチャートを描画
+         * @param {Object} data - AIから返されたJSONデータ
+         */
+        function displayResults(data) {
+            resultsDiv.classList.remove('hidden');
+            
+            // スコアを整形して表示
+            scoreOutput.textContent = JSON.stringify(data, null, 2);
+            
+            // 総合評価を表示
+            overallJudgment.textContent = data.overall_judgment;
+            overallJudgment.className = 'ml-2 px-3 py-1 rounded-full font-bold';
+            
+            // 評価に応じて色を調整
+            const rating = data.overall_judgment.toUpperCase().charAt(0);
+            if (rating === 'A') {
+                overallJudgment.classList.add('bg-green-600');
+            } else if (rating === 'B') {
+                overallJudgment.classList.add('bg-yellow-600');
+            } else {
+                overallJudgment.classList.add('bg-red-600');
+            }
+
+            // アドバイスを表示
+            adviceText.innerHTML = data.advice_text.replace(/\n/g, '<br>');
+            
+            // レーダーチャートの描画
+            drawRadarChart(data.scores);
+        }
+        
+        /**
+         * レーダーチャートを描画する
+         * @param {Object} scores - 5つの評価軸スコア
+         */
+        function drawRadarChart(scores) {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            
+            // 既存のチャートがあれば破棄
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            const labels = Object.keys(scores);
+            const dataValues = Object.values(scores);
+            
+            Chart.register(ChartDataLabels);
+
+            chartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'AI 診断スコア',
+                        data: dataValues,
+                        backgroundColor: 'rgba(16, 185, 129, 0.4)', // green-500
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(16, 185, 129, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: '#e5e7eb' },
+                            grid: { color: '#e5e7eb' },
+                            pointLabels: {
+                                font: { size: 12, family: 'Inter, Noto Sans JP' },
+                                color: '#374151' // gray-700
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 5,
+                            ticks: {
+                                stepSize: 1,
+                                beginAtZero: true,
+                                color: '#9ca3af' // gray-400
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: true },
+                        datalabels: {
+                            color: '#10b981', // green-600
+                            font: { weight: 'bold', size: 14 },
+                            formatter: (value) => value // スコアの数値をそのまま表示
+                        }
+                    }
+                }
+            });
+        }
+        
+        // --- 初期化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            selectInputMethod('upload'); // デフォルトはアップロード
+            lucide.createIcons();
+        });
+        
+    </script>
+</body>
+</html>
