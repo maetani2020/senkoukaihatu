@@ -95,6 +95,7 @@ btnUseCamera.addEventListener('click', () => {
     selectInputMethod('camera');
     startCamera();
 });
+
 btnUseUpload.addEventListener('click', () => {
     selectInputMethod('upload');
     stopCamera();
@@ -103,6 +104,7 @@ btnUseUpload.addEventListener('click', () => {
 captureButton.addEventListener('click', handleCaptureClick);
 retakeButton.addEventListener('click', handleRetake);
 
+// --- アップロード処理 ---
 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
     dropZone.addEventListener(eventName, preventDefaults, false);
     document.body.addEventListener(eventName, preventDefaults, false);
@@ -114,14 +116,30 @@ retakeButton.addEventListener('click', handleRetake);
     dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
 });
 dropZone.addEventListener('drop', handleDrop, false);
-imageInput.addEventListener('change', (e) => { handleFile(e.target.files[0]); });
-function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
-function handleDrop(e) { handleFile(e.dataTransfer.files[0]); }
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+function handleDrop(e) {
+    handleFile(e.dataTransfer.files[0]);
+}
+
+imageInput.addEventListener('change', (e) => {
+    handleFile(e.target.files[0]);
+});
 
 function handleFile(file) {
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { showError("ファイルサイズが5MBを超えています。"); return; }
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) { showError("PNG, JPG, WEBPのみ可"); return; }
+    if (file.size > 5 * 1024 * 1024) {
+        showError("ファイルサイズが5MBを超えています。");
+        return;
+    }
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+        showError("PNG, JPG, WEBP 形式の画像を選択してください。");
+        return;
+    }
     mimeType = file.type;
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -136,6 +154,7 @@ function handleFile(file) {
     reader.readAsDataURL(file);
 }
 
+// --- カメラ処理 ---
 function selectInputMethod(method) {
     lastInputMethod = method;
     if (method === 'camera') {
@@ -150,6 +169,7 @@ function selectInputMethod(method) {
         btnUseCamera.classList.remove('bg-indigo-100', 'border-indigo-500', 'text-indigo-700');
     }
 }
+
 async function startCamera() {
     try {
         if (cameraStream) {
@@ -166,6 +186,7 @@ async function startCamera() {
         selectInputMethod('upload'); 
     }
 }
+
 function stopCamera() {
     if (cameraStream) {
         cameraStream.getTracks().forEach(track => track.stop());
@@ -218,6 +239,7 @@ function takePicture() {
     const dataUrl = captureCanvas.toDataURL('image/jpeg'); 
     mimeType = 'image/jpeg';
     base64Image = dataUrl.split(',')[1];
+    
     imagePreview.src = dataUrl;
     imagePreviewContainer.classList.remove('hidden');
     checkAnalyzeButtonState();
@@ -252,13 +274,13 @@ function checkAnalyzeButtonState() {
         analyzeButton.disabled = true;
     }
 }
-
 analyzeButton.addEventListener('click', callGeminiApi);
 
-// --- Gemini API 呼び出し (ダミー) ---
+// --- Gemini API 呼び出し (JSONモード) ---
 async function callGeminiApi() {
     loadingSpinner.classList.remove('hidden');
     analyzeButton.disabled = true;
+    analyzeButton.querySelector('span').textContent = '分析中です...';
     hideError();
     analysisResultContainer.classList.add('hidden');
     retakeButton.disabled = true; 
@@ -300,7 +322,39 @@ async function callGeminiApi() {
                     }
                 ]
             }
+        ],
+        systemInstruction: {
+            parts: [{ text: systemPrompt }]
+        },
+        generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: responseSchema
+        }
+    };
+
+    try {
+        const response = await fetchWithBackoff(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
+
+        if (!response.ok) {
+            throw new Error(`APIエラー: ${response.status} ${response.statusText}`);
+        }
+        const result = await response.json();
+        
+        if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0].text) {
+            const jsonString = result.candidates[0].content.parts[0].text;
+            const data = JSON.parse(jsonString);
+            displayResult(data);
+        } else {
+            showError("AIが応答を生成できませんでした。別の画像で試してみてください。");
+        }
+    } catch (error) {
+        console.error("Fetch error:", error);
+        showError(`分析中にエラーが発生しました: ${error.message}`);
+    } finally {
         loadingSpinner.classList.add('hidden');
         analyzeButton.disabled = false; 
         analyzeButton.querySelector('span').textContent = '再度分析する';
@@ -341,7 +395,7 @@ function displayResult(data) {
         data: {
             labels: labels,
             datasets: [{
-                label: '項目別評価',
+                label: '項目別評価 (5点満点)',
                 data: scores,
                 backgroundColor: 'rgba(79, 70, 229, 0.2)', // indigo-600
                 borderColor: '#4f46e5',
@@ -419,12 +473,37 @@ function hideError() {
     errorMessage.classList.add('hidden');
 }
 
-function showError(msg) { errorMessage.textContent = msg; errorMessage.classList.remove('hidden'); }
-function hideError() { errorMessage.textContent = ''; errorMessage.classList.add('hidden'); }
+// --- APIリトライ ---
+async function fetchWithBackoff(url, options, maxRetries = 3, baseDelay = 1000) {
+    let attempt = 0;
+    while (attempt < maxRetries) {
+        try {
+            const response = await fetch(url, options);
+            if (response.ok) {
+                return response;
+            }
+            if (response.status === 429) {
+                const delay = baseDelay * Math.pow(2, attempt);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                attempt++;
+            } else {
+                return response;
+            }
+        } catch (error) {
+            if (attempt + 1 >= maxRetries) {
+                throw error;
+            }
+            const delay = baseDelay * Math.pow(2, attempt);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            attempt++;
+        }
+    }
+    throw new Error('API request failed after all retries.');
+}
 
 // --- 初期化 ---
 document.addEventListener('DOMContentLoaded', () => {
-    selectInputMethod('upload');
+    selectInputMethod('upload'); // デフォルトはアップロード
     lucide.createIcons();
     // デフォルトのタイマーボタン（なし）を選択状態にする
     timerButtons[0].classList.add('selected');
