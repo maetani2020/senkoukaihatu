@@ -4,28 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>就活サポートアプリ ホーム</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- アイコンライブラリ -->
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="css/home.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
-    <!-- === ヘッダー === -->
+
     <nav class="fixed top-0 left-0 right-0 bg-white shadow-md z-50 h-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <!-- ロゴ -->
                 <a href="home.html" class="flex-shrink-0 flex items-center gap-2">
                     <svg class="h-8 w-8 text-sky-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
                     <span class="text-2xl font-bold text-gray-800">就活サポート</span>
                 </a>
-                <!-- ナビゲーション -->
                 <div class="hidden md:flex md:items-center md:gap-8">
                     <a href="sindan.html" class="font-medium text-gray-600 hover:text-sky-600 transition-colors">ES/履歴書診断</a>
                     <a href="camera.html" class="font-medium text-gray-600 hover:text-purple-600 transition-colors">AI服装分析</a>
                 </div>
-                <!-- 右側アイコン/ボタン -->
                 <div class="flex items-center gap-4">
                     <a href="#" class="text-gray-500 hover:text-gray-700">
                         <svg class="lucide lucide-help-circle h-6 w-6" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
@@ -37,12 +32,9 @@
         </div>
     </nav>
 
-    <!-- === メイン === -->
     <div class="w-full max-w-4xl mx-auto py-12 px-6">
         <header class="text-center mb-12 py-8 bg-white rounded-xl shadow-lg">
-            <h1 class="text-4xl md:text-5xl font-bold text-sky-600 mb-4">
-                AI就活サポート
-            </h1>
+            <h1 class="text-4xl md:text-5xl font-bold text-sky-600 mb-4">AI就活サポート</h1>
             <p class="text-xl text-gray-700 mb-2">あなたの就職活動を、一歩先へ。</p>
             <p class="text-md text-gray-500 max-w-2xl mx-auto px-4">
                 ESや履歴書の作成に悩んでいませんか？ 面接の服装に自信がありませんか？<br>
@@ -50,51 +42,40 @@
             </p>
         </header>
         <main class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- ES/履歴書診断 -->
             <a href="sindan.html" class="feature-card bg-white rounded-xl shadow-lg overflow-hidden group">
                 <div class="p-8">
                     <div class="flex items-center justify-center w-16 h-16 bg-sky-100 rounded-full mb-6 group-hover:bg-sky-200 transition-colors">
-                        <svg class="lucide lucide-file-text w-8 h-8 text-sky-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+                        <svg class="lucide lucide-file-text w-8 h-8 text-sky-600" xmlns="http://www.w3.org/2000/svg"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
                     </div>
-                    <h2 class="text-3xl font-bold text-gray-800 mb-3">
-                        ES/履歴書診断
-                    </h2>
-                    <p class="text-gray-600 mb-6">
-                        あなたの「社会人基礎力」を20問で診断。自己PRや長所のヒントを見つけます。
-                    </p>
+                    <h2 class="text-3xl font-bold text-gray-800 mb-3">ES/履歴書診断</h2>
+                    <p class="text-gray-600 mb-6">あなたの「社会人基礎力」を20問で診断。自己PRや長所のヒントを見つけます。</p>
                     <div class="flex items-center text-sky-600 font-semibold group-hover:text-sky-700">
                         診断をはじめる
-                        <svg class="lucide lucide-arrow-right w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                        <svg class="lucide lucide-arrow-right w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                     </div>
                 </div>
             </a>
-            <!-- 服装分析 -->
             <a href="camera.html" class="feature-card bg-white rounded-xl shadow-lg overflow-hidden group">
                 <div class="p-8">
                     <div class="flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-6 group-hover:bg-purple-200 transition-colors">
-                        <svg class="lucide lucide-camera w-8 h-8 text-purple-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                        <svg class="lucide lucide-camera w-8 h-8 text-purple-600" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
                     </div>
-                    <h2 class="text-3xl font-bold text-gray-800 mb-3">
-                        ✨ AI服装分析
-                    </h2>
-                    <p class="text-gray-600 mb-6">
-                        面接用の写真をアップロード。AIがあなたの服装や身だしなみをチェックします。
-                    </p>
+                    <h2 class="text-3xl font-bold text-gray-800 mb-3">✨ AI服装分析</h2>
+                    <p class="text-gray-600 mb-6">面接用の写真をアップロード。AIがあなたの服装や身だしなみをチェックします。</p>
                     <div class="flex items-center text-purple-600 font-semibold group-hover:text-purple-700">
                         分析をはじめる
-                        <svg class="lucide lucide-arrow-right w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                        <svg class="lucide lucide-arrow-right w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                     </div>
                 </div>
             </a>
         </main>
     </div>
     
-    <!-- === フッター === -->
     <footer class="w-full mt-16 pb-8 text-center text-gray-500">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-gray-200 pt-6">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div class="flex items-center gap-2">
-                    <svg class="h-6 w-6 text-gray-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <svg class="h-6 w-6 text-gray-500" xmlns="http://www.w3.org/2000/svg"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
                     <span class="text-lg font-semibold">就活サポート</span>
                 </div>
                 <nav class="flex gap-4">
