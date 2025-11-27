@@ -1,7 +1,5 @@
 // --- 要素取得 ---
 const sceneSelect = document.getElementById('sceneSelect');
-// const areaSelect = document.getElementById('areaSelect'); // ★ 削除
-const areaButtons = document.querySelectorAll('.area-btn'); // ★ 追加
 const btnUseCamera = document.getElementById('btnUseCamera');
 const btnUseUpload = document.getElementById('btnUseUpload');
 const cameraUi = document.getElementById('cameraUi');
@@ -18,9 +16,11 @@ const loadingSpinner = document.getElementById('loadingSpinner');
 const analysisResultContainer = document.getElementById('analysisResultContainer');
 const analysisResult = document.getElementById('analysisResult');
 const errorMessage = document.getElementById('errorMessage');
+const errorText = document.getElementById('errorText');
 const overallScoreEl = document.getElementById('overallScore');
 const sceneForScoreEl = document.getElementById('sceneForScore');
 const timerButtons = document.querySelectorAll('.timer-btn');
+const areaButtons = document.querySelectorAll('.area-btn');
 const countdownOverlay = document.getElementById('countdownOverlay');
 const countdownText = document.getElementById('countdownText');
 const retakeButton = document.getElementById('retakeButton');
@@ -28,7 +28,7 @@ const scoreBenchmarkEl = document.getElementById('scoreBenchmark');
 
 // --- 状態管理 ---
 let selectedScene = "";
-let selectedArea = ""; // ★ 変更なし
+let selectedArea = "";
 let base64Image = null;
 let mimeType = null;
 let cameraStream = null;
@@ -37,7 +37,7 @@ let selectedTimer = 0;
 let countdownInterval = null;
 let lastInputMethod = 'upload';
 
-// --- JSON スキーマ定義 ---
+// --- JSON スキーマ定義 (v13準拠) ---
 const responseSchema = {
     type: "OBJECT",
     properties: {
@@ -72,22 +72,24 @@ sceneSelect.addEventListener('change', (e) => {
     checkAnalyzeButtonState();
 });
 
-// ★ 削除
-// areaSelect.addEventListener('change', (e) => {
-//     selectedArea = e.target.value;
-//     checkAnalyzeButtonState();
-// });
-
-// ★ 追加 (エリアボタンのイベントリスナー)
+// エリア選択ボタン
 areaButtons.forEach(btn => {
     btn.addEventListener('click', () => {
-        areaButtons.forEach(b => b.classList.remove('selected', 'bg-violet-100', 'border-violet-500', 'text-violet-700', 'font-bold'));
-        btn.classList.add('selected', 'bg-violet-100', 'border-violet-500', 'text-violet-700', 'font-bold');
+        areaButtons.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
         selectedArea = btn.dataset.area;
         checkAnalyzeButtonState();
     });
 });
 
+// タイマー選択ボタン
+timerButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        timerButtons.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedTimer = parseInt(btn.dataset.timer, 10);
+    });
+});
 
 btnUseCamera.addEventListener('click', () => {
     selectInputMethod('camera');
@@ -100,16 +102,7 @@ btnUseUpload.addEventListener('click', () => {
 });
 
 captureButton.addEventListener('click', handleCaptureClick);
-
 retakeButton.addEventListener('click', handleRetake);
-
-timerButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        timerButtons.forEach(b => b.classList.remove('selected', 'bg-violet-100', 'border-violet-500', 'text-violet-700'));
-        btn.classList.add('selected', 'bg-violet-100', 'border-violet-500', 'text-violet-700');
-        selectedTimer = parseInt(btn.dataset.timer, 10);
-    });
-});
 
 // --- アップロード処理 ---
 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -167,13 +160,13 @@ function selectInputMethod(method) {
     if (method === 'camera') {
         cameraUi.classList.remove('hidden');
         uploadUi.classList.add('hidden');
-        btnUseCamera.classList.add('bg-purple-50', 'border-purple-500', 'text-purple-600');
-        btnUseUpload.classList.remove('bg-purple-50', 'border-purple-500', 'text-purple-600');
+        btnUseCamera.classList.add('bg-indigo-100', 'border-indigo-500', 'text-indigo-700');
+        btnUseUpload.classList.remove('bg-indigo-100', 'border-indigo-500', 'text-indigo-700');
     } else {
         cameraUi.classList.add('hidden');
         uploadUi.classList.remove('hidden');
-        btnUseUpload.classList.add('bg-purple-50', 'border-purple-500', 'text-purple-600');
-        btnUseCamera.classList.remove('bg-purple-50', 'border-purple-500', 'text-purple-600');
+        btnUseUpload.classList.add('bg-indigo-100', 'border-indigo-500', 'text-indigo-700');
+        btnUseCamera.classList.remove('bg-indigo-100', 'border-indigo-500', 'text-indigo-700');
     }
 }
 
@@ -231,7 +224,8 @@ function startCountdown(seconds) {
             takePicture(); 
             
             captureButton.disabled = false;
-            captureButton.textContent = '撮影する';
+            captureButton.innerHTML = '<i data-lucide="aperture" class="w-6 h-6"></i> 撮影する';
+            lucide.createIcons();
         }
     }, 1000);
 }
@@ -259,14 +253,11 @@ function handleRetake() {
     imagePreview.src = "";
     imageInput.value = null; 
     
-    // ★ 範囲選択もリセット（ボタンの選択を解除）
-    selectedArea = "";
-    // areaSelect.value = ""; // ★ 削除
-    areaButtons.forEach(b => b.classList.remove('selected', 'bg-violet-100', 'border-violet-500', 'text-violet-700', 'font-bold')); // ★ 追加
-
+    // エリアとシーンは維持するが、画像関連の状態だけリセット
     imagePreviewContainer.classList.add('hidden');
     analyzeButton.disabled = true;
     hideError();
+    analysisResultContainer.classList.add('hidden');
     
     selectInputMethod(lastInputMethod);
     if (lastInputMethod === 'camera') {
@@ -277,7 +268,6 @@ function handleRetake() {
 
 // --- 分析ボタンの制御 ---
 function checkAnalyzeButtonState() {
-    // ★ selectedArea もチェック対象に
     if (selectedScene && selectedArea && base64Image) {
         analyzeButton.disabled = false;
     } else {
@@ -298,7 +288,7 @@ async function callGeminiApi() {
     const apiKey = ""; // Canvasが自動挿入
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
-    // ★ システムプロンプトを厳格な評価者（辛口）に変更
+    // ★ 厳格な評価者プロンプト
     const systemPrompt = `
 あなたはプロの就活アドバイザーであり、大手企業の人事部で最終面接官を長年務めた経験を持つ、非常に厳格な評価者です。
 ユーザーは人生の重要な岐路である就職活動に臨んでいます。一切の妥協や甘い評価は許されません。
@@ -323,7 +313,6 @@ async function callGeminiApi() {
             {
                 role: "user",
                 parts: [
-                    // ★ プロンプトに selectedArea を追加
                     { text: `この服装を「${selectedScene}」の場面を想定して、「${selectedArea}」の範囲で評価してください。` },
                     {
                         inlineData: {
@@ -380,10 +369,8 @@ function displayResult(data) {
 
     const score = data.overallScore || 0; 
     overallScoreEl.textContent = score;
-    // ★ sceneForScore に範囲も表示
     sceneForScoreEl.textContent = `（${data.scene || selectedScene} / ${selectedArea} での評価）`;
 
-    // 総合点に応じた基準点とフィードバックを表示
     scoreBenchmarkEl.classList.remove('bg-green-100', 'text-green-800', 'bg-yellow-100', 'text-yellow-800', 'bg-red-100', 'text-red-800'); 
     if (score >= 80) {
         scoreBenchmarkEl.textContent = '合格ライン (80点以上)';
@@ -395,7 +382,6 @@ function displayResult(data) {
         scoreBenchmarkEl.textContent = '大幅改善が必要 (合格ライン 80点)';
         scoreBenchmarkEl.classList.add('bg-red-100', 'text-red-800');
     }
-
 
     const ctx = document.getElementById('attireRadarChart').getContext('2d');
     const labels = data.evaluation.map(item => item.item);
@@ -411,58 +397,79 @@ function displayResult(data) {
             datasets: [{
                 label: '項目別評価 (5点満点)',
                 data: scores,
-                backgroundColor: 'rgba(109, 40, 217, 0.2)', // purple-600
-                borderColor: 'rgba(109, 40, 217, 1)',
+                backgroundColor: 'rgba(79, 70, 229, 0.2)', // indigo-600
+                borderColor: '#4f46e5',
                 borderWidth: 2,
-                pointBackgroundColor: 'rgba(109, 40, 217, 1)'
+                pointBackgroundColor: '#4f46e5',
+                pointBorderColor: '#fff'
             }]
         },
         options: {
             scales: {
                 r: {
-                    angleLines: { display: true },
+                    angleLines: { display: true, color: '#e2e8f0' },
+                    grid: { color: '#e2e8f0' },
                     suggestedMin: 0,
-                    suggestedMax: 5, // 5点満点
-                    ticks: { stepSize: 1 },
-                    pointLabels: { font: { size: 14 } }
+                    suggestedMax: 5,
+                    ticks: { stepSize: 1, display: false },
+                    pointLabels: {
+                        font: { size: 12, family: 'Noto Sans JP', weight: 'bold' },
+                        color: '#475569'
+                    }
                 }
             },
-            plugins: {
-                legend: { position: 'top' }
-            }
+            plugins: { legend: { display: false } }
         }
     });
 
     const comment = data.overallComment;
     analysisResult.innerHTML = `
-        <h3 class="text-green-700">✔️ 良い点 (Good Points)</h3>
-        <p>${comment.goodPoints.replace(/\n/g, '<br>')}</p>
+        <div class="bg-green-50 border border-green-200 rounded-2xl p-6">
+            <h3 class="text-green-800 flex items-center gap-2 font-bold mb-2">
+                <i data-lucide="check-circle" class="w-5 h-5"></i> 良い点 (Good Points)
+            </h3>
+            <p class="text-green-700 leading-relaxed">${comment.goodPoints.replace(/\n/g, '<br>')}</p>
+        </div>
         
-        <h3 class="text-amber-700">⚠️ 改善提案 (Suggestions)</h3>
-        <p>${comment.suggestions.replace(/\n/g, '<br>')}</p>
+        <div class="bg-yellow-50 border border-yellow-200 rounded-2xl p-6">
+            <h3 class="text-yellow-800 flex items-center gap-2 font-bold mb-2">
+                <i data-lucide="alert-triangle" class="w-5 h-5"></i> 改善提案 (Suggestions)
+            </h3>
+            <p class="text-yellow-700 leading-relaxed">${comment.suggestions.replace(/\n/g, '<br>')}</p>
+        </div>
         
-        <h3 class="text-gray-800">💡 総評 (Summary)</h3>
-        <p>${comment.summary.replace(/\n/g, '<br>')}</p>
+        <div class="bg-white border border-slate-200 rounded-2xl p-6">
+            <h3 class="text-slate-800 flex items-center gap-2 font-bold mb-2">
+                <i data-lucide="lightbulb" class="w-5 h-5"></i> 総評 (Summary)
+            </h3>
+            <p class="text-slate-600 leading-relaxed">${comment.summary.replace(/\n/g, '<br>')}</p>
+        </div>
         
-        <h3 class="text-gray-800">🔍 項目別コメント</h3>
-        <ul>
-            ${data.evaluation.map(item => `
-                <li><strong>${item.item} (${item.score}/5):</strong> ${item.comment}</li>
-            `).join('')}
-        </ul>
+        <div class="mt-8">
+            <h3 class="text-slate-800 font-bold mb-4 flex items-center gap-2"><i data-lucide="list" class="w-5 h-5"></i> 項目別詳細</h3>
+            <div class="space-y-3">
+                ${data.evaluation.map(item => `
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-bold text-slate-700">${item.item}</span>
+                            <span class="font-bold text-indigo-600">${item.score}/5</span>
+                        </div>
+                        <p class="text-sm text-slate-600">${item.comment}</p>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
     `;
-    // アイコンを再描画
     lucide.createIcons();
 }
 
 
 // --- UIヘルパー ---
 function showError(message) {
-    errorMessage.textContent = message;
+    errorText.textContent = message;
     errorMessage.classList.remove('hidden');
 }
 function hideError() {
-    errorMessage.textContent = '';
     errorMessage.classList.add('hidden');
 }
 
@@ -476,8 +483,7 @@ async function fetchWithBackoff(url, options, maxRetries = 3, baseDelay = 1000) 
                 return response;
             }
             if (response.status === 429) {
-                // ★★★ 修正: baseDelay -> attempt
-                const delay = baseDelay * Math.pow(2, attempt); 
+                const delay = baseDelay * Math.pow(2, attempt);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 attempt++;
             } else {
@@ -487,8 +493,7 @@ async function fetchWithBackoff(url, options, maxRetries = 3, baseDelay = 1000) 
             if (attempt + 1 >= maxRetries) {
                 throw error;
             }
-            // ★★★ 修正: (ここは元々正しかったですが、念のため)
-            const delay = baseDelay * Math.pow(2, attempt); 
+            const delay = baseDelay * Math.pow(2, attempt);
             await new Promise(resolve => setTimeout(resolve, delay));
             attempt++;
         }
@@ -501,5 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
     selectInputMethod('upload'); // デフォルトはアップロード
     lucide.createIcons();
     // デフォルトのタイマーボタン（なし）を選択状態にする
-    timerButtons[0].classList.add('selected', 'bg-violet-100', 'border-violet-500', 'text-violet-700');
+    timerButtons[0].classList.add('selected');
+    // デフォルトのエリアボタン（全体）を選択状態にする
+    areaButtons[0].classList.add('selected');
 });
