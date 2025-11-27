@@ -1,23 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 body {
     font-family: 'Inter', 'Noto Sans JP', sans-serif;
-    /* ★ ヘッダーの高さを 4rem (64px) に変更 */
-    padding-top: 64px; 
-    /* ★ 背景をグラデーションから bg-gray-100 に変更 */
+    padding-top: 64px;
     background-color: #f3f4f6;
 }
-/* ★ .bunseki-card のスタイルを削除 (Tailwindで bg-white, shadow-xl を指定) */
-
-/* ★ .option-btn のスタイルを削除 (Tailwindで指定) */
-
-/* 質問カードの高さ固定用 */
 .question-text-container {
-    min-height: 10rem; /* 質問文が1行でも3行でも高さを固定 (約160px) */
+    min-height: 10rem;
     display: flex;
     align-items: center;
     justify-content: center;
 }
-/* ローディング */
 @keyframes pulse-dot {
     0%, 100% { transform: scale(1); opacity: 0.5; }
     50% { transform: scale(1.3); opacity: 1; }

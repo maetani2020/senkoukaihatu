@@ -4,146 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI服装分析 - 就活サポート</title>
-    <!-- Tailwind+Lucide+Chart.js -->
+    <link rel="stylesheet" href="css/camera.css">
+    <!-- 外部ライブラリ (Tailwind, Lucide, Chart.js)はCDN利用 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
-    <link rel="stylesheet" href="css/camera.css">
-    <style>
-        /* 必要ならcss/camera.cssに追加可 */
-        .input-method-btn.active { background-color: #10b981; color: white; box-shadow: 0 4px 6px rgba(16,185,129,0.3);}
-        .input-method-btn { transition: all 0.2s;}
-    </style>
 </head>
-<body class="bg-gray-100">
-
-    <nav class="fixed top-0 left-0 right-0 bg-white shadow-md z-50 h-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <a href="home.html" class="flex-shrink-0 flex items-center gap-2">
-                    <svg class="h-8 w-8 text-sky-600" xmlns="http://www.w3.org/2000/svg" ...></svg>
-                    <span class="text-2xl font-bold text-gray-800">就活サポート</span>
-                </a>
-                <a href="home.html" class="flex items-center text-gray-600 hover:text-sky-600 transition-colors">
-                    <svg class="lucide lucide-arrow-left w-4 h-4 mr-1" ...></svg>
-                    ホームに戻る
-                </a>
-            </div>
-        </div>
+<body>
+    <nav class="navbar">
+        <a href="home.html" class="logo"><span>就活サポート</span></a>
+        <a href="home.html">ホームに戻る</a>
     </nav>
-
-    <div class="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 md:p-10 my-12">
-        <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6">✨ AI服装分析</h1>
-
-        <!-- 場面選択 & TPO入力 -->
-        <div class="mb-6 flex flex-col gap-4">
+    <main class="camera-main">
+        <h1 class="title">AI服装分析</h1>
+        <section class="scene-section">
+            <label for="sceneSelect">分析シーン</label>
+            <select id="sceneSelect">
+                <option value="">-- 場面を選択してください --</option>
+                <option value="最終面接（堅め）">最終面接（堅め）</option>
+                <option value="一般面接（標準）">一般面接（標準）</option>
+                <option value="カジュアル面談（私服可）">カジュアル面談（私服可）</option>
+                <option value="インターンシップ（スーツ指定）">インターンシップ（スーツ指定）</option>
+                <option value="インターンシップ（ビジネスカジュアル）">インターンシップ（ビジネスカジュアル）</option>
+            </select>
+        </section>
+        <section class="input-section">
+            <button id="btnUseUpload" type="button" class="input-method-btn active">ファイルアップロード</button>
+            <button id="btnUseCamera" type="button" class="input-method-btn">カメラ撮影</button>
+            <div id="uploadUi" class="input-ui">
+                <label id="dropZone" for="imageInput">画像をドラッグまたはクリック</label>
+                <input id="imageInput" type="file" accept="image/png, image/jpeg, image/webp" hidden />
+            </div>
+            <div id="cameraUi" class="input-ui hidden">
+                <video id="cameraStream" autoplay></video>
+                <canvas id="captureCanvas" class="hidden"></canvas>
+                <button id="captureButton" type="button">撮影して分析</button>
+            </div>
+            <div id="imagePreviewContainer" class="hidden">
+                <img id="imagePreview" src="" alt="画像プレビュー">
+            </div>
+        </section>
+        <button id="analyzeButton" disabled><span>分析スタート</span></button>
+        <div id="loadingSpinner" class="spinner hidden"></div>
+        <div id="errorMessage" class="hidden"></div>
+        <section id="analysisResultContainer" class="hidden">
+            <h2>AI評価結果</h2>
             <div>
-                <label for="sceneSelect" class="block text-lg font-semibold text-gray-700 mb-2">1. 分析シーン（選択可）</label>
-                <select id="sceneSelect" class="w-full p-3 border border-gray-300 rounded-lg bg-white text-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                    <option value="" selected>-- 場面を選択してください --</option>
-                    <option value="最終面接（堅め）">最終面接（堅め）</option>
-                    <option value="一般面接（標準）">一般面接（標準）</option>
-                    <option value="カジュアル面談（私服可）">カジュアル面談（私服可）</option>
-                    <option value="インターンシップ（スーツ指定）">インターンシップ（スーツ指定）</option>
-                    <option value="インターンシップ（ビジネスカジュアル）">インターンシップ（ビジネスカジュアル）</option>
-                </select>
+                <span id="overallScore"></span>
+                <span id="sceneForScore"></span>
+                <canvas id="attireRadarChart"></canvas>
             </div>
-            <div>
-                <label for="tpoInput" class="block text-lg font-semibold text-gray-700 mb-2">2. TPO情報（任意・詳細に）</label>
-                <textarea id="tpoInput" rows="2" class="w-full p-3 border border-gray-300 rounded-lg bg-white text-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" placeholder="例: 日付, 場所, 季節, 目的 など"></textarea>
-            </div>
-        </div>
-
-        <!-- 画像入力方法選択 -->
-        <div class="mb-6">
-            <label class="block text-lg font-semibold text-gray-700 mb-3">3. 写真を準備</label>
-            <div class="flex gap-4 mb-4">
-                <button id="uploadBtn" type="button" class="input-method-btn active w-full p-3 font-semibold rounded-lg border-2 border-gray-300 text-gray-600">
-                    <span class="flex items-center justify-center gap-2"><svg class="lucide lucide-upload w-5 h-5" ...></svg>ファイルアップロード</span>
-                </button>
-                <button id="cameraBtn" type="button" class="input-method-btn w-full p-3 font-semibold rounded-lg border-2 border-purple-500 text-purple-600">
-                    <span class="flex items-center justify-center gap-2"><svg class="lucide lucide-camera w-5 h-5" ...></svg>カメラ撮影</span>
-                </button>
-            </div>
-            <!-- アップロードUI -->
-            <div id="uploadInput" class="">
-                <label id="dropZone" for="imageInput" class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                    <svg class="lucide lucide-upload-cloud w-10 h-10 mb-3 text-gray-500" ...></svg>
-                    <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">クリック</span>またはドラッグ＆ドロップ</p>
-                    <p class="text-xs text-gray-500">PNG, JPG, WEBP (5MBまで)</p>
-                </label>
-                <input id="imageInput" type="file" class="hidden" accept="image/png, image/jpeg, image/webp" />
-            </div>
-            <!-- カメラUI -->
-            <div id="cameraInput" class="hidden">
-                <video id="video" class="w-full max-w-md mx-auto bg-gray-200 rounded-lg shadow-inner" autoplay></video>
-                <canvas id="canvas" class="hidden"></canvas>
-                <div class="flex justify-center space-x-4 pt-2">
-                    <button id="startCamBtn" type="button" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center transition duration-150 ease-in-out">
-                        <i data-lucide="video" class="w-5 h-5 mr-2"></i>カメラ開始
-                    </button>
-                    <button id="captureBtn" type="button" class="hidden bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center transition duration-150 ease-in-out">
-                        <i data-lucide="camera" class="w-5 h-5 mr-2"></i>撮影
-                    </button>
-                </div>
-            </div>
-            <!-- プレビュー -->
-            <div id="imagePreviewContainer" class="hidden mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50 text-center">
-                <h4 class="text-sm font-medium text-gray-600 mb-2">プレビュー:</h4>
-                <img id="currentImagePreview" class="max-w-full h-auto mx-auto rounded-md shadow-md" style="max-height: 250px;" src="" alt="選択画像">
-            </div>
-        </div>
-
-        <!-- 診断ボタン -->
-        <button id="analyzeButton" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-4 rounded-lg shadow-md transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed text-xl active:scale-[0.98]" disabled>
-            <svg class="lucide lucide-sparkles w-6 h-6 mr-2" ...></svg>
-            <span>分析スタート</span>
-        </button>
-        <div id="loadingIndicator" class="hidden text-center my-8">
-            <div class="spinner mx-auto mb-4"></div>
-            <p class="text-lg text-gray-700">AIが分析中です...</p>
-        </div>
-        <div id="errorMessage" class="hidden my-4 p-4 bg-red-100 text-red-700 border border-red-300 rounded-lg"></div>
-
-        <!-- 分析結果表示 -->
-        <div id="results" class="hidden mt-8 border-t pt-6">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">AI判定結果</h2>
-            <div class="grid md:grid-cols-2 gap-8">
-                <!-- レーダーチャート -->
-                <div class="bg-white p-4 rounded-xl shadow-lg border border-green-100">
-                    <h3 class="text-lg font-medium text-gray-700 mb-4 flex items-center"><i data-lucide="trending-up" class="w-5 h-5 mr-2 text-green-600"></i> スコアサマリー</h3>
-                    <div style="height: 300px;"><canvas id="radarChart"></canvas></div>
-                </div>
-                <!-- 総合評価 & アドバイス -->
-                <div class="bg-white p-4 rounded-xl shadow-lg border border-green-100">
-                    <h3 class="text-lg font-medium text-gray-700 mb-4 flex items-center"><i data-lucide="speech" class="w-5 h-5 mr-2 text-green-600"></i> 総合評価とアドバイス</h3>
-                    <div id="adviceOutput" class="space-y-3">
-                        <p class="font-bold text-2xl mb-2 flex items-center">総合評価: <span id="overallJudgment" class="ml-2 px-3 py-1 rounded-full text-white"></span></p>
-                        <div id="adviceText" class="text-gray-700 text-sm bg-green-50 p-3 rounded-lg border border-green-200"></div>
-                    </div>
-                    <h3 class="text-lg font-medium text-gray-700 mt-6 mb-2">生JSONデータ</h3>
-                    <pre id="scoreOutput" class="bg-gray-100 p-2 rounded-lg text-xs overflow-x-auto h-32"></pre>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <footer class="w-full mt-12 pb-8 text-center text-gray-500">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-gray-200 pt-6">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-2">
-                    <svg class="h-6 w-6 text-gray-500" ...></svg>
-                    <span class="text-lg font-semibold">就活サポート</span>
-                </div>
-                <nav class="flex gap-4">
-                    <a href="#" class="hover:text-gray-700">利用規約</a>
-                    <a href="#" class="hover:text-gray-700">プライバシーポリシー</a>
-                    <a href="#" class="hover:text-gray-700">お問い合わせ</a>
-                </nav>
-            </div>
-            <p class="mt-6 text-sm">&copy; 2024 就活サポートチーム. All rights reserved.</p>
-        </div>
+            <div id="analysisResult"></div>
+        </section>
+    </main>
+    <footer>
+        <span>就活サポート</span>
     </footer>
     <script src="js/camera.js"></script>
 </body>
