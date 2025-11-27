@@ -63,7 +63,7 @@ const resultsData = {
     '実行力': { category: '前に踏み出す力', element: '実行力 (主体性)', direction: '「目標達成のために主体的に行動し、粘り強くやり遂げる力」をアピールしましょう。困難な状況でも諦めず、自ら考え行動した経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、目標達成のために主体的に行動し、最後までやり遂げる「実行力」です。</p><p class="text-sm text-slate-500">（例：資格取得という目標に対し、1日3時間の学習を半年間継続。途中で点数が伸び悩んだ際も、学習方法を見直し、無事合格を勝ち取ったエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「実行力」を活かし、貴社でも高い目標に挑戦し、粘り強く成果を追求したいと考えております。</p>', advice: '「言われたことをやった」だけでは主体性とは見なされません。「なぜそれに取り組んだのか（目的意識）」と「困難をどう乗り越えたか（粘り強さ）」を明確にしましょう。' },
     '働きかけ力': { category: '前に踏み出す力', element: '働きかけ力 (巻き込み力)', direction: '「目標達成のために、周りの人々を巻き込み、協力を引き出す力」をアピールしましょう。異なる意見を持つメンバーをまとめ、同じ方向に導いた経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、周りの人々を巻き込み、目標達成に向かって働きかける力です。</p><p class="text-sm text-slate-500">（例：文化祭の企画で、意見がバラバラだったチームに対し、個別にヒアリングを行い、全員が納得できる共通のビジョン（例：「来場者アンケート1位」）を設定し、チームを一つにしたエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「働きかけ力」を活かし、チームの一員として、周囲と積極的に協働し、より大きな成果を生み出すことに貢献したいです。</p>', advice: '単なる「リーダー経験」ではなく、「なぜ周りがあなたに協力してくれたのか」が重要です。相手のメリットや想いを汲み取った上で「働きかけた」点を強調しましょう。' },
     '傾聴力': { category: 'チームで働く力', element: '傾聴力 (共感力)', direction: '「相手の意見や感情を深く理解し、信頼関係を築く力」をアピールしましょう。相手が話しやすい雰囲気を作り、言葉の裏にある真意を引き出した経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、相手の立場に立って話を深く聴き、信頼関係を築く「傾聴力」です。</p><p class="text-sm text-slate-500">（例：アルバイト先で、新人の定着率が悪いという課題に対し、新人一人ひとりと面談。不安や不満を丁寧にヒアリングし、教育マニュアルの改善を店長に提案・実行したエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「傾聴力」を活かし、社内外の多様な関係者と円滑なコミュニケーションを図り、チームの潤滑油として貢献したいです。</p>', advice: '「ただ話を聞いた」だけではアピールになりません。「聞いた結果、相手や状況がどう変わったか（問題解決）」までをセットで示すことが重要です。' },
-    '発信力': { category: 'チームで働く力', element: '発信力 (説明力)', direction: '「自分の考えや情報を、相手に分かりやすく論理的に伝える力」をアピールしましょう。専門的な内容を噛み砕いたり、複雑な状況を整理して説明した経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、複雑な情報や自分の考えを、相手に合わせて分かりやすく伝える「発信力」です。</p><p class="text-sm text-slate-500">（例：ゼミの研究発表で、専門外の学生にも興味を持ってもらえるよう、専門用語を日常の例えに置き換え、図やグラフを多用して説明し、高い評価を得たエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「発信力」を活かし、貴社でもチーム内での正確な情報共有や、クライアントへの分かりやすい提案を行い、円滑なプロジェクト推進に貢献したいです。</p>', advice: '「一方的に話す」ことではありません。「相手の理解度（前提知識）」を常に意識し、「双方向のコミュニケーション」を心がけた点をアピールできると、より評価されます。' }
+    '発信力': { category: 'チームで働く力', element: '発信力 (説明力)', direction: '「自分の考えや情報を、相手に分かりやすく論理的に伝える力」をアピールしましょう。専門的な内容を噛み砕いたり、複雑な状況を整理して説明した経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、複雑な情報や自分の考えを、相手に合わせて分かりやすく伝える「発信力」です。</p><p class="text-sm text-slate-500">（例：ゼミの研究発表で、専門外の学生にも興味を持ってもらえるよう、専門用語を日常の例えに置き換え、図やグラフを多用して説明し、高い評価を得たエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「発信力」を活かし、貴社でもチーム内での正確な情報共有や、クライアントへの分かりやすい提案を行い、円滑なプロジェクト推進に貢献したいです。</p>', advice: '「一方的に話を聞いた」ことではありません。「相手の理解度（前提知識）」を常に意識し、「双方向のコミュニケーション」を心がけた点をアピールできると、より評価が高くなります。' }
 };
 
 // --- 状態変数 ---
@@ -264,7 +264,7 @@ function renderResult() {
                     <svg class="lucide lucide-edit w-6 h-6 inline-block mr-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     AI生成：自己PR例文
                 </h2>
-                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white shadow-sm text-slate-700 leading-relaxed relative z-10 text-lg">
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white shadow-sm text-slate-700 leading-relaxed relative z-10 text-lg" id="aiPRContent">
                     ${result.example}
                 </div>
             </div>
@@ -312,12 +312,65 @@ function renderResult() {
     bunsekiContent.querySelector('#restartButton').addEventListener('click', startStage1);
     // アイコンを再描画
     lucide.createIcons();
+
+    // 呼び出し：サーバ経由で AI に自己PRをさらにブラッシュアップしてもらう（非同期）
+    try {
+        generateAiPR(result).then(text => {
+            if (!text) return;
+            const container = document.getElementById('aiPRContent');
+            // テキストを安全に挿入（プレーンテキスト）
+            const el = document.createElement('div');
+            el.className = 'prose text-slate-700';
+            el.textContent = text;
+            container.innerHTML = '';
+            container.appendChild(el);
+        }).catch(err => {
+            // 失敗しても既存の example を表示したままにする
+            console.error('AI PR generation failed:', err);
+        });
+    } catch (err) {
+        console.error('generateAiPR error:', err);
+    }
 }
 
 function startStage1() {
     stage1Scores = { action: 0, think: 0, team: 0 };
     currentStage1Question = 0;
     renderStage1Question();
+}
+
+// --- サーバ経由で簡易テキスト生成（自己PRブラッシュアップ用） ---
+async function generateAiPR(result) {
+    try {
+        // Build a concise prompt for the server
+        const prompt = `
+あなたはプロの就活アドバイザー兼コピーライターです。
+以下の情報を元に、面接で使える自己PR文を日本語で200〜300文字程度で作成してください。
+・要素: ${result.element}
+・アピールの方向性: ${result.direction}
+・プロのアドバイス: ${result.advice}
+
+出力は文章のみで、箇条書きや余分な説明文は含めないでください。
+`;
+        const resp = await fetch('/api/generate-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json().catch(()=>({}));
+            throw new Error(err.error || `Server returned ${resp.status}`);
+        }
+        const payload = await resp.json();
+        if (!payload.success) {
+            throw new Error(payload.error || 'Unknown server error');
+        }
+        return payload.text;
+    } catch (err) {
+        console.error('generateAiPR error', err);
+        return null;
+    }
 }
 
 // --- 初期化実行 ---
