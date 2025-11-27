@@ -2,7 +2,7 @@
 const bunsekiContent = document.getElementById('bunsekiContent');
 let radarChartInstance = null; 
 
-// --- 質問データ (全20問) ---
+// --- 質問データ ---
 const stage1Questions = [
     { text: "新しいプロジェクトに取り組む時、あなたが最も重視するのは？", options: [{ text: "まず行動し、試行錯誤する", value: "action" }, { text: "リスクを分析し、計画を立てる", value: "think" }, { text: "チームメンバーと役割分担する", value: "team" }] },
     { text: "意見が対立した時、あなたはどうする？", options: [{ text: "自分の意見を主張し、議論を主導する", value: "action" }, { text: "相手の意見の背景を分析する", value: "think" }, { text: "共通点を見つけ、合意形成を図る", value: "team" }] },
@@ -58,12 +58,12 @@ const stage2Questions = {
     ]
 };
 const resultsData = {
-    '課題発見力': { category: '考え抜く力', element: '課題発見力', direction: '「現状を分析し、隠れた問題点や本質的な課題を見抜く力」をアピールしましょう。データや事象から「なぜ」を追求し、改善に繋げた経験が有効です。', example: '<p><strong>[強み]</strong> 私の強みは、現状を分析し本質的な課題を発見する力です。</p><p><strong>[エピソード]</strong>（例：アルバイト先の売上低迷に対し、単なる人手不足ではなく「時間帯による客層のズレ」が問題であるとデータから特定したエピソード）</p><p><strong>[貢献]</strong> この「課題発見力」を活かし、貴社の事業においても表面的な事象に捉われず、真の課題解決に貢献したいと考えております。</p>', advice: '課題を発見しただけでなく、「どのように分析したか（具体的手法）」と「発見した課題をどう解決に導いたか（行動）」までをセットで語れると説得力が増します。' },
-    '計画力': { category: '考え抜く力', element: '計画力', direction: '「目標達成までのプロセスを逆算し、実現可能なダンドリを組む力」をアピールしましょう。タスクを分解し、優先順位をつけ、リスクを管理した経験が有効です。', example: '<p><strong>[強み]</strong> 私の強みは、目標達成から逆算して計画を立て、実行する力です。</p><p><strong>[エピソード]</strong>（例：サークルのイベント運営において、半年前からタスクを洗い出し、担当と期限を明確にしたスケジュール管理表を作成・運用し、成功に導いたエピソード）</p><p><strong>[貢献]</strong> この「計画力」を活かし、貴社のプロジェクトにおいても着実な業務遂行と目標達成に貢献したいと考えております。</p>', advice: '「計画倒れ」にならなかったことが重要です。計画の実行中に発生した「予期せぬトラブル」に対し、どのように計画を「修正」して対応したかも含めると、より評価が高くなります。' },
-    '実行力': { category: '前に踏み出す力', element: '実行力 (主体性)', direction: '「目標達成のために主体的に行動し、粘り強くやり遂げる力」をアピールしましょう。困難な状況でも諦めず、自ら考え行動した経験が有効です。', example: '<p><strong>[強み]</strong> 私の強みは、目標達成のために主体的に行動し、最後までやり遂げる「実行力」です。</p><p><strong>[エピソード]</strong>（例：資格取得という目標に対し、1日3時間の学習を半年間継続。途中で点数が伸び悩んだ際も、学習方法を見直し、無事合格を勝ち取ったエピソード）</p><p><strong>[貢献]</strong> この「実行力」を活かし、貴社でも高い目標に挑戦し、粘り強く成果を追求したいと考えております。</p>', advice: '「言われたことをやった」だけでは主体性とは見なされません。「なぜそれに取り組んだのか（目的意識）」と「困難をどう乗り越えたか（粘り強さ）」を明確にしましょう。' },
-    '働きかけ力': { category: '前に踏み出す力', element: '働きかけ力 (巻き込み力)', direction: '「目標達成のために、周りの人々を巻き込み、協力を引き出す力」をアピールしましょう。異なる意見を持つメンバーをまとめ、同じ方向に導いた経験が有効です。', example: '<p><strong>[強み]</strong> 私の強みは、周りの人々を巻き込み、目標達成に向かって働きかける力です。</p><p><strong>[エピソード]</strong>（例：文化祭の企画で、意見がバラバラだったチームに対し、個別にヒアリングを行い、全員が納得できる共通のビジョン（例：「来場者アンケート1位」）を設定し、チームを一つにしたエピソード）</p><p><strong>[貢献]</strong> この「働きかけ力」を活かし、チームの一員として、周囲と積極的に協働し、より大きな成果を生み出すことに貢献したいです。</p>', advice: '単なる「リーダー経験」ではなく、「なぜ周りがあなたに協力してくれたのか」が重要です。相手のメリットや想いを汲み取った上で「働きかけた」点を強調しましょう。' },
-    '傾聴力': { category: 'チームで働く力', element: '傾聴力 (共感力)', direction: '「相手の意見や感情を深く理解し、信頼関係を築く力」をアピールしましょう。相手が話しやすい雰囲気を作り、言葉の裏にある真意を引き出した経験が有効です。', example: '<p><strong>[強み]</strong> 私の強みは、相手の立場に立って話を深く聴き、信頼関係を築く「傾聴力」です。</p><p><strong>[エピソード]</strong>（例：アルバイト先で、新人の定着率が悪いという課題に対し、新人一人ひとりと面談。不安や不満を丁寧にヒアリングし、教育マニュアルの改善を店長に提案・実行したエピソード）</p><p><strong>[貢献]</strong> この「傾聴力」を活かし、社内外の多様な関係者と円滑なコミュニケーションを図り、チームの潤滑油として貢献したいです。</p>', advice: '「ただ話を聞いた」だけではアピールになりません。「聞いた結果、相手や状況がどう変わったか（問題解決）」までをセットで示すことが重要です。' },
-    '発信力': { category: 'チームで働く力', element: '発信力 (説明力)', direction: '「自分の考えや情報を、相手に分かりやすく論理的に伝える力」をアピールしましょう。専門的な内容を噛み砕いたり、複雑な状況を整理して説明した経験が有効です。', example: '<p><strong>[強み]</strong> 私の強みは、複雑な情報や自分の考えを、相手に合わせて分かりやすく伝える「発信力」です。</p><p><strong>[エピソード]</strong>（例：ゼミの研究発表で、専門外の学生にも興味を持ってもらえるよう、専門用語を日常の例えに置き換え、図やグラフを多用して説明し、高い評価を得たエピソード）</p><p><strong>[貢献]</strong> この「発信力」を活かし、貴社でもチーム内での正確な情報共有や、クライアントへの分かりやすい提案を行い、円滑なプロジェクト推進に貢献したいです。</p>', advice: '「一方的に話す」ことではありません。「相手の理解度（前提知識）」を常に意識し、「双方向のコミュニケーション」を心がけた点をアピールできると、より評価されます。' }
+    '課題発見力': { category: '考え抜く力', element: '課題発見力', direction: '「現状を分析し、隠れた問題点や本質的な課題を見抜く力」をアピールしましょう。データや事象から「なぜ」を追求し、改善に繋げた経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、現状を分析し本質的な課題を発見する力です。</p><p class="text-sm text-slate-500">（例：アルバイト先の売上低迷に対し、単なる人手不足ではなく「時間帯による客層のズレ」が問題であるとデータから特定したエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「課題発見力」を活かし、貴社の事業においても表面的な事象に捉われず、真の課題解決に貢献したいと考えております。</p>', advice: '課題を発見しただけでなく、「どのように分析したか（具体的手法）」と「発見した課題をどう解決に導いたか（行動）」までをセットで語れると説得力が増します。' },
+    '計画力': { category: '考え抜く力', element: '計画力', direction: '「目標達成までのプロセスを逆算し、実現可能なダンドリを組む力」をアピールしましょう。タスクを分解し、優先順位をつけ、リスクを管理した経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、目標達成から逆算して計画を立て、実行する力です。</p><p class="text-sm text-slate-500">（例：サークルのイベント運営において、半年前からタスクを洗い出し、担当と期限を明確にしたスケジュール管理表を作成・運用し、成功に導いたエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「計画力」を活かし、貴社のプロジェクトにおいても着実な業務遂行と目標達成に貢献したいと考えております。</p>', advice: '「計画倒れ」にならなかったことが重要です。計画の実行中に発生した「予期せぬトラブル」に対し、どのように計画を「修正」して対応したかも含めると、より評価が高くなります。' },
+    '実行力': { category: '前に踏み出す力', element: '実行力 (主体性)', direction: '「目標達成のために主体的に行動し、粘り強くやり遂げる力」をアピールしましょう。困難な状況でも諦めず、自ら考え行動した経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、目標達成のために主体的に行動し、最後までやり遂げる「実行力」です。</p><p class="text-sm text-slate-500">（例：資格取得という目標に対し、1日3時間の学習を半年間継続。途中で点数が伸び悩んだ際も、学習方法を見直し、無事合格を勝ち取ったエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「実行力」を活かし、貴社でも高い目標に挑戦し、粘り強く成果を追求したいと考えております。</p>', advice: '「言われたことをやった」だけでは主体性とは見なされません。「なぜそれに取り組んだのか（目的意識）」と「困難をどう乗り越えたか（粘り強さ）」を明確にしましょう。' },
+    '働きかけ力': { category: '前に踏み出す力', element: '働きかけ力 (巻き込み力)', direction: '「目標達成のために、周りの人々を巻き込み、協力を引き出す力」をアピールしましょう。異なる意見を持つメンバーをまとめ、同じ方向に導いた経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、周りの人々を巻き込み、目標達成に向かって働きかける力です。</p><p class="text-sm text-slate-500">（例：文化祭の企画で、意見がバラバラだったチームに対し、個別にヒアリングを行い、全員が納得できる共通のビジョン（例：「来場者アンケート1位」）を設定し、チームを一つにしたエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「働きかけ力」を活かし、チームの一員として、周囲と積極的に協働し、より大きな成果を生み出すことに貢献したいです。</p>', advice: '単なる「リーダー経験」ではなく、「なぜ周りがあなたに協力してくれたのか」が重要です。相手のメリットや想いを汲み取った上で「働きかけた」点を強調しましょう。' },
+    '傾聴力': { category: 'チームで働く力', element: '傾聴力 (共感力)', direction: '「相手の意見や感情を深く理解し、信頼関係を築く力」をアピールしましょう。相手が話しやすい雰囲気を作り、言葉の裏にある真意を引き出した経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、相手の立場に立って話を深く聴き、信頼関係を築く「傾聴力」です。</p><p class="text-sm text-slate-500">（例：アルバイト先で、新人の定着率が悪いという課題に対し、新人一人ひとりと面談。不安や不満を丁寧にヒアリングし、教育マニュアルの改善を店長に提案・実行したエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「傾聴力」を活かし、社内外の多様な関係者と円滑なコミュニケーションを図り、チームの潤滑油として貢献したいです。</p>', advice: '「ただ話を聞いた」だけではアピールになりません。「聞いた結果、相手や状況がどう変わったか（問題解決）」までをセットで示すことが重要です。' },
+    '発信力': { category: 'チームで働く力', element: '発信力 (説明力)', direction: '「自分の考えや情報を、相手に分かりやすく論理的に伝える力」をアピールしましょう。専門的な内容を噛み砕いたり、複雑な状況を整理して説明した経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、複雑な情報や自分の考えを、相手に合わせて分かりやすく伝える「発信力」です。</p><p class="text-sm text-slate-500">（例：ゼミの研究発表で、専門外の学生にも興味を持ってもらえるよう、専門用語を日常の例えに置き換え、図やグラフを多用して説明し、高い評価を得たエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「発信力」を活かし、貴社でもチーム内での正確な情報共有や、クライアントへの分かりやすい提案を行い、円滑なプロジェクト推進に貢献したいです。</p>', advice: '「一方的に話す」ことではありません。「相手の理解度（前提知識）」を常に意識し、「双方向のコミュニケーション」を心がけた点をアピールできると、より評価されます。' }
 };
 
 // --- 状態変数 ---
@@ -77,19 +77,22 @@ let currentStage2Question = 0;
 // --- 画面描画関数 ---
 function renderStart() {
     bunsekiContent.innerHTML = `
-        <div class="bunseki-card bg-white w-full max-w-lg mx-auto p-8 md:p-12 rounded-2xl shadow-xl text-center">
-            <svg class="lucide lucide-file-text w-16 h-16 text-sky-600 mx-auto mb-6" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">社会人基礎力 診断</h1>
-            <p class="text-lg text-gray-600 mb-8">
+        <div class="bg-white w-full max-w-lg mx-auto p-10 md:p-14 rounded-[2rem] shadow-xl border border-slate-200 text-center animate-fade-in">
+            <div class="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mb-8 text-blue-600 shadow-sm mx-auto">
+                <svg class="lucide lucide-file-text w-10 h-10" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">社会人基礎力 診断</h1>
+            <p class="text-lg text-slate-500 mb-10 leading-relaxed">
                 全20問の質問に答えて、あなたの強みを見つけましょう。
                 ES・履歴書作成のヒントを提供します。
             </p>
-            <button id="startButton" class="w-full text-xl font-semibold bg-sky-600 text-white py-4 px-8 rounded-lg shadow-lg hover:bg-sky-700 transition-colors active:scale-[0.98]">
+            <button id="startButton" class="w-full text-xl font-bold bg-blue-600 text-white py-4 px-8 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:shadow-blue-300 transition-all active:scale-[0.98]">
                 診断スタート
             </button>
         </div>
     `;
     bunsekiContent.querySelector('#startButton').addEventListener('click', startStage1);
+    lucide.createIcons();
 }
 
 function renderStage1Question() {
@@ -100,22 +103,26 @@ function renderStage1Question() {
     const q = stage1Questions[currentStage1Question];
     const progress = ((currentStage1Question + 1) / stage1Questions.length) * 100;
     bunsekiContent.innerHTML = `
-        <div class="bunseki-card bg-white w-full max-w-2xl mx-auto p-8 md:p-10 rounded-2xl shadow-xl">
-            <div class="mb-6">
-                <p class="text-sm font-semibold text-sky-700 mb-2">
-                    第1段階 (${currentStage1Question + 1} / ${stage1Questions.length})
-                </p>
-                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                    <div class="bg-sky-600 h-2.5 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
+        <div class="bg-white w-full max-w-2xl mx-auto p-8 md:p-12 rounded-[2rem] shadow-xl border border-slate-200 animate-fade-in">
+            <div class="mb-8">
+                <div class="flex justify-between items-end mb-2">
+                    <span class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">STEP 1</span>
+                    <span class="text-xs font-mono text-slate-400">${currentStage1Question + 1} / ${stage1Questions.length}</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                    <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
                 </div>
             </div>
-            <div class="question-text-container mb-8">
-                <h2 class="text-2xl md:text-3xl font-bold text-gray-800 leading-snug text-center">${q.text}</h2>
+            <div class="question-text-container mb-10">
+                <h2 class="text-2xl md:text-3xl font-bold text-slate-900 leading-snug text-center">${q.text}</h2>
             </div>
             <div class="space-y-4">
                 ${q.options.map((opt, index) => `
-                    <button class="option-btn w-full text-left text-lg p-5 bg-white rounded-lg border-2 border-gray-200 hover:border-sky-500 hover:bg-sky-50 transition-all duration-200 hover:-translate-y-1 hover:shadow-md active:scale-[0.98]" data-value="${opt.value}">
-                        ${opt.text}
+                    <button class="option-btn w-full text-left text-lg p-6 bg-white rounded-xl border border-slate-200 text-slate-700 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700 transition-all shadow-sm hover:shadow-md active:scale-[0.99]" data-value="${opt.value}">
+                        <div class="flex items-center justify-between">
+                            <span>${opt.text}</span>
+                            <i data-lucide="chevron-right" class="w-5 h-5 opacity-50"></i>
+                        </div>
                     </button>
                 `).join('')}
             </div>
@@ -128,6 +135,7 @@ function renderStage1Question() {
             renderStage1Question();
         });
     });
+    lucide.createIcons();
 }
 
 function calculateStage1Result() {
@@ -146,22 +154,25 @@ function renderStage2Question() {
     const q = questionsForCategory[currentStage2Question];
     const progress = ((currentStage2Question + 1) / questionsForCategory.length) * 100;
     const categoryName = {action: '前に踏み出す力', think: '考え抜く力', team: 'チームで働く力'}[topCategory];
+    
+    // テーマカラーの切り替え (indigo)
     bunsekiContent.innerHTML = `
-        <div class="bunseki-card bg-white w-full max-w-2xl mx-auto p-8 md:p-10 rounded-2xl shadow-xl">
-            <div class="mb-6">
-                <p class="text-sm font-semibold text-teal-700 mb-2">
-                    第2段階 (${currentStage2Question + 1} / ${questionsForCategory.length}) - 【${categoryName}】
-                </p>
-                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                    <div class="bg-teal-600 h-2.5 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
+        <div class="bg-white w-full max-w-2xl mx-auto p-8 md:p-12 rounded-[2rem] shadow-xl border border-slate-200 animate-fade-in border-t-4 border-t-indigo-500">
+            <div class="mb-8">
+                 <div class="flex justify-between items-end mb-2">
+                    <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">STEP 2: ${categoryName}</span>
+                    <span class="text-xs font-mono text-slate-400">${currentStage2Question + 1} / ${questionsForCategory.length}</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                    <div class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
                 </div>
             </div>
-            <div class="question-text-container mb-8">
-                <h2 class="text-2xl md:text-3xl font-bold text-gray-800 leading-snug text-center">${q.text}</h2>
+            <div class="question-text-container mb-10">
+                <h2 class="text-2xl md:text-3xl font-bold text-slate-900 leading-snug text-center">${q.text}</h2>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 ${q.options.map((opt, index) => `
-                    <button class="option-btn w-full text-center text-lg p-8 bg-white rounded-lg border-2 border-gray-200 hover:border-teal-500 hover:bg-teal-50 transition-all duration-200 hover:-translate-y-1 hover:shadow-md active:scale-[0.98]" data-value="${opt.value}">
+                    <button class="option-btn w-full text-center text-lg p-6 h-40 flex items-center justify-center bg-white rounded-xl border border-slate-200 text-slate-700 hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-700 transition-all shadow-sm hover:shadow-md active:scale-[0.99]" data-value="${opt.value}">
                         ${opt.text}
                     </button>
                 `).join('')}
@@ -191,17 +202,17 @@ function calculateStage2Result() {
 
 function renderLoading() {
     bunsekiContent.innerHTML = `
-        <div class="text-center p-12">
-            <div class="flex justify-center items-center gap-3 mb-6">
-                <div class="dot w-4 h-4 bg-sky-600 rounded-full"></div>
-                <div class="dot w-4 h-4 bg-sky-600 rounded-full"></div>
-                <div class="dot w-4 h-4 bg-sky-600 rounded-full"></div>
+        <div class="text-center p-16 animate-fade-in">
+            <div class="flex justify-center items-center gap-3 mb-8">
+                <div class="dot w-5 h-5 bg-blue-600 rounded-full"></div>
+                <div class="dot w-5 h-5 bg-indigo-600 rounded-full"></div>
+                <div class="dot w-5 h-5 bg-sky-500 rounded-full"></div>
             </div>
-            <h2 class="text-3xl font-bold text-gray-800">分析中...</h2>
-            <p class="text-lg text-gray-600 mt-2">あなたの強みをまとめています。</p>
+            <h2 class="text-3xl font-bold text-slate-900">分析中...</h2>
+            <p class="text-lg text-slate-500 mt-3">あなたの強みをまとめています。</p>
         </div>
     `;
-    setTimeout(renderResult, 1500); // 1.5秒待つ
+    setTimeout(renderResult, 1500);
 }
 
 function renderResult() {
@@ -209,44 +220,56 @@ function renderResult() {
     const categoryNames = { action: '前に踏み出す力', think: '考え抜く力', team: 'チームで働く力' };
     
     bunsekiContent.innerHTML = `
-        <div class="bunseki-card bg-white w-full max-w-4xl mx-auto p-8 md:p-12 rounded-2xl shadow-xl">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 text-center mb-8">
-                診断結果：あなたの強み
-            </h1>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="p-6 bg-gray-50/50 rounded-lg border">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4 text-center">社会人基礎力バランス</h2>
-                    <canvas id="resultRadarChart"></canvas>
+        <div class="bg-white w-full max-w-4xl mx-auto p-8 md:p-12 rounded-[2rem] shadow-xl border border-slate-200 animate-fade-in">
+            <div class="text-center mb-12">
+                <p class="text-sm font-bold text-blue-600 tracking-widest uppercase mb-3">ANALYSIS RESULT</p>
+                <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-6">あなたの最大の武器</h1>
+                <div class="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-3xl md:text-5xl font-bold px-10 py-5 rounded-2xl shadow-xl shadow-blue-200 transform hover:scale-105 transition-transform cursor-default">
+                    ${result.element}
                 </div>
-                <div class="flex flex-col justify-center">
-                    <p class="text-lg text-gray-600">あなたの傾向は...</p>
-                    <h2 class="text-4xl font-bold text-sky-600 mb-4">${categoryNames[topCategory]}</h2>
-                    <p class="text-lg text-gray-600">特に秀でている要素は...</p>
-                    <h3 class="text-3xl font-semibold text-gray-800 mb-4">${result.element}</h3>
-                    <p class="text-md text-gray-500">${result.direction}</p>
+                <p class="mt-6 text-slate-500 font-medium">カテゴリー：${categoryNames[topCategory]}</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
+                <div class="bg-slate-50 rounded-3xl p-8 border border-slate-100">
+                    <h2 class="text-xl font-bold text-slate-700 mb-6 text-center">社会人基礎力バランス</h2>
+                    <div class="aspect-square relative">
+                        <canvas id="resultRadarChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="flex flex-col justify-center space-y-6">
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:border-blue-200 transition-colors">
+                        <h3 class="font-bold text-slate-900 mb-3 flex items-center">
+                            <div class="p-1.5 bg-blue-100 rounded-lg mr-3 text-blue-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></div>
+                            アピールの方向性
+                        </h3>
+                        <p class="text-slate-600 leading-relaxed">${result.direction}</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:border-indigo-200 transition-colors">
+                        <h3 class="font-bold text-slate-900 mb-3 flex items-center">
+                            <div class="p-1.5 bg-indigo-100 rounded-lg mr-3 text-indigo-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                            プロのアドバイス
+                        </h3>
+                        <p class="text-slate-600 leading-relaxed">${result.advice}</p>
+                    </div>
                 </div>
             </div>
-            <div class="mt-10 pt-6 border-t">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-6">
-                    <svg class="lucide lucide-edit w-6 h-6 inline-block mr-2 text-sky-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    自己PRへの活かし方
+
+            <div class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-3xl p-8 md:p-10 border border-blue-100 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-6 opacity-5">
+                     <svg class="w-32 h-32 text-blue-900" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center relative z-10">
+                    <svg class="lucide lucide-edit w-6 h-6 inline-block mr-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    AI生成：自己PR例文
                 </h2>
-                <div class="space-y-6">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-700">② 方向性</h3>
-                        <p class="text-gray-600">${result.direction}</p>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-700">③ 構造・例文</h3>
-                        <div class="text-gray-600 bg-gray-50/50 p-4 rounded-lg border">${result.example}</div>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-700">④ アドバイス</h3>
-                        <p class="text-gray-600">${result.advice}</p>
-                    </div>
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white shadow-sm text-slate-700 leading-relaxed relative z-10 text-lg">
+                    ${result.example}
                 </div>
             </div>
-            <button id="restartButton" class="w-full mt-10 text-lg font-semibold bg-gray-200 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-300 transition-colors">
+
+            <button id="restartButton" class="w-full mt-12 text-lg font-semibold bg-slate-100 text-slate-700 py-4 px-8 rounded-xl hover:bg-slate-200 transition-colors">
                 もう一度診断する
             </button>
         </div>
@@ -261,14 +284,28 @@ function renderResult() {
             datasets: [{
                 label: 'あなたの傾向',
                 data: [stage1Scores.action, stage1Scores.think, stage1Scores.team],
-                backgroundColor: 'rgba(56, 189, 248, 0.2)',
-                borderColor: 'rgba(14, 165, 233, 1)',
-                borderWidth: 2,
-                pointBackgroundColor: 'rgba(14, 165, 233, 1)'
+                backgroundColor: 'rgba(37, 99, 235, 0.2)', // blue-600 alpha
+                borderColor: '#2563eb', // blue-600
+                borderWidth: 3,
+                pointBackgroundColor: '#2563eb',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: '#2563eb',
+                pointRadius: 5
             }]
         },
         options: {
-            scales: { r: { angleLines: { display: true }, suggestedMin: 0, suggestedMax: 8, ticks: { stepSize: 2 } } },
+            scales: { r: { 
+                angleLines: { display: true, color: '#e2e8f0' }, 
+                grid: { color: '#e2e8f0' },
+                suggestedMin: 0, 
+                suggestedMax: 8, 
+                ticks: { stepSize: 2, display: false },
+                pointLabels: {
+                    font: { size: 14, family: 'Noto Sans JP', weight: 'bold' },
+                    color: '#475569'
+                }
+            } },
             plugins: { legend: { display: false } }
         }
     });
