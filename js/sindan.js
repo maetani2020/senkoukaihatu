@@ -22,11 +22,11 @@ let answerHistory = [];
 
 // --- 画像のマッピング ---
 const categoryImages = {
-    action: 'koudou.jpg',
-    logic: 'ronri.jpg',
-    team: 'kyoutyou.jpg',
-    creative: 'souzou.jpg',
-    resilience: 'seisin.jpg'
+    action: 'image/koudou.png',
+    logic: 'image/ronri.png',
+    team: 'image/kyoutyou.png',
+    creative: 'image/souzou.png',
+    resilience: 'image/seisin.png'
 };
 
 // --- 業種リスト ---
