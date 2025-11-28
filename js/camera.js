@@ -276,7 +276,7 @@ function checkAnalyzeButtonState() {
 }
 analyzeButton.addEventListener('click', callGeminiApi);
 
-// --- Gemini API 呼び出し (JSONモード) ---
+// --- サーバ経由でGemini APIを呼ぶ ---
 async function callGeminiApi() {
     loadingSpinner.classList.remove('hidden');
     analyzeButton.disabled = true;
@@ -285,74 +285,31 @@ async function callGeminiApi() {
     analysisResultContainer.classList.add('hidden');
     retakeButton.disabled = true; 
 
-    const apiKey = ""; // Canvasが自動挿入
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
-    // ★ 厳格な評価者プロンプト
-    const systemPrompt = `
-あなたはプロの就活アドバイザーであり、大手企業の人事部で最終面接官を長年務めた経験を持つ、非常に厳格な評価者です。
-ユーザーは人生の重要な岐路である就職活動に臨んでいます。一切の妥協や甘い評価は許されません。
-提供された画像を、ユーザーが選択した場面（シーン）と範囲に基づき、非常に厳格な基準で評価してください。
-
-評価項目は「清潔感」「フォーマル度」「サイズ感」「髪型」「表情/姿勢」の5項目を各5点満点で採点してください。
-少しでも懸念があれば減点し、その理由を「改善提案」で具体的に、厳しく指摘してください。
-
-最後に総合点を100点満点で算出してください。
-総合点の目安は以下の通りです。
-- 80点以上：合格ライン。ただし、改善点があれば必ず指摘すること。
-- 60-79点：要改善。面接官によっては不採用となるレベル。
-- 59点以下：大幅改善が必要。このままでは面接通過は困難。
-
-全体的なフィードバック（良い点、改善提案、総評）を提供してください。
-「良い点」は当然できているべきこととして簡潔にし、「改善提案」を最も重視し、具体的かつ厳しく、どうすれば改善できるかを明確に指示してください。
-必ず指定されたJSONスキーマに従って回答してください。
-`;
-
-    const payload = {
-        contents: [
-            {
-                role: "user",
-                parts: [
-                    { text: `この服装を「${selectedScene}」の場面を想定して、「${selectedArea}」の範囲で評価してください。` },
-                    {
-                        inlineData: {
-                            mimeType: mimeType,
-                            data: base64Image
-                        }
-                    }
-                ]
-            }
-        ],
-        systemInstruction: {
-            parts: [{ text: systemPrompt }]
-        },
-        generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: responseSchema
-        }
-    };
-
     try {
-        const response = await fetchWithBackoff(apiUrl, {
+        const resp = await fetch('/api/analyze-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                scene: selectedScene,
+                area: selectedArea,
+                mimeType,
+                base64Image
+            })
         });
 
-        if (!response.ok) {
-            throw new Error(`APIエラー: ${response.status} ${response.statusText}`);
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.error || `Server returned ${resp.status}`);
         }
-        const result = await response.json();
-        
-        if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0].text) {
-            const jsonString = result.candidates[0].content.parts[0].text;
-            const data = JSON.parse(jsonString);
-            displayResult(data);
-        } else {
-            showError("AIが応答を生成できませんでした。別の画像で試してみてください。");
+
+        const payload = await resp.json();
+        if (!payload.success) {
+            throw new Error(payload.error || 'Unknown server error');
         }
+
+        displayResult(payload.data);
     } catch (error) {
-        console.error("Fetch error:", error);
+        console.error("Analyze error:", error);
         showError(`分析中にエラーが発生しました: ${error.message}`);
     } finally {
         loadingSpinner.classList.add('hidden');
@@ -472,41 +429,3 @@ function showError(message) {
 function hideError() {
     errorMessage.classList.add('hidden');
 }
-
-// --- APIリトライ ---
-async function fetchWithBackoff(url, options, maxRetries = 3, baseDelay = 1000) {
-    let attempt = 0;
-    while (attempt < maxRetries) {
-        try {
-            const response = await fetch(url, options);
-            if (response.ok) {
-                return response;
-            }
-            if (response.status === 429) {
-                const delay = baseDelay * Math.pow(2, attempt);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                attempt++;
-            } else {
-                return response;
-            }
-        } catch (error) {
-            if (attempt + 1 >= maxRetries) {
-                throw error;
-            }
-            const delay = baseDelay * Math.pow(2, attempt);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            attempt++;
-        }
-    }
-    throw new Error('API request failed after all retries.');
-}
-
-// --- 初期化 ---
-document.addEventListener('DOMContentLoaded', () => {
-    selectInputMethod('upload'); // デフォルトはアップロード
-    lucide.createIcons();
-    // デフォルトのタイマーボタン（なし）を選択状態にする
-    timerButtons[0].classList.add('selected');
-    // デフォルトのエリアボタン（全体）を選択状態にする
-    areaButtons[0].classList.add('selected');
-});

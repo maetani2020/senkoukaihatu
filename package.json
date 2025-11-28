@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/maetani2020/senkoukaihatu#readme",
   "dependencies": {
+    "dotenv": "^17.2.3",
     "express": "^5.1.0"
   }
 }
