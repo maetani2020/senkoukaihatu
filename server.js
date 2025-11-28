@@ -1,7 +1,6 @@
 const express = require("express");
 const path = require("path");
-// Node 18+ は global.fetch を持つため、node-fetch は必須ではありませんが
-// 古い環境向けにフォールバックを用意しています。
+
 const fetch = global.fetch || (() => {
   try {
     return require('node-fetch');
@@ -10,7 +9,6 @@ const fetch = global.fetch || (() => {
   }
 })();
 
-// dotenv を安全に読み込む（開発用）。未インストールでも動作する。
 try {
   require('dotenv').config();
 } catch (e) {
@@ -20,14 +18,11 @@ try {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 画像の base64 を受け取れるよう大きめに設定
 app.use(express.json({ limit: '12mb' }));
 app.use(express.urlencoded({ extended: true, limit: '12mb' }));
 
-// 静的ファイル（プロジェクトルート）
 app.use(express.static(__dirname));
 
-// 簡易 CORS（必要に応じて本番では厳格化）
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -36,13 +31,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// 環境変数から API キーを取得（.env では GEMINI_API_KEY=... を設定）
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || null;
+
 if (!GEMINI_API_KEY) {
   console.warn('Warning: GEMINI_API_KEY not set. Set GEMINI_API_KEY in environment or .env (do not commit .env).');
 }
 
-// Helper: call Gemini (Generative Language) API with retries
 async function callGeminiApi(apiUrl, payload, maxRetries = 3) {
   if (!fetch) throw new Error('fetch is not available in this environment. Install node-fetch or use Node 18+.');
   let attempt = 0;
@@ -54,7 +48,6 @@ async function callGeminiApi(apiUrl, payload, maxRetries = 3) {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
-        // node-fetch ignores timeout option; for production consider AbortController
       });
 
       if (res.status === 429) {
@@ -76,8 +69,6 @@ async function callGeminiApi(apiUrl, payload, maxRetries = 3) {
   throw new Error('Failed to call Gemini API after retries');
 }
 
-// POST /api/analyze-image
-// body: { scene, area, mimeType, base64Image }
 app.post('/api/analyze-image', async (req, res) => {
   try {
     if (!GEMINI_API_KEY) {
@@ -89,7 +80,6 @@ app.post('/api/analyze-image', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Missing required parameters: scene, area, mimeType, base64Image' });
     }
 
-    // JSON schema same as client
     const responseSchema = {
       type: "OBJECT",
       properties: {
@@ -117,7 +107,7 @@ app.post('/api/analyze-image', async (req, res) => {
       }
     };
 
-    const systemPrompt = `（省略）`; // 実運用では長いプロンプトをここに入れる（不要にキーを出力しない）
+    const systemPrompt = `（省略）`; 
 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -172,7 +162,6 @@ app.post('/api/analyze-image', async (req, res) => {
   }
 });
 
-// POST /api/generate-text
 app.post('/api/generate-text', async (req, res) => {
   try {
     if (!GEMINI_API_KEY) {
@@ -215,7 +204,6 @@ app.post('/api/generate-text', async (req, res) => {
   }
 });
 
-// Serve home page
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "home.html"));
 });
