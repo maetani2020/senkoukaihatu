@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <link rel="stylesheet" href="css/camera.css">
     
 </head>
@@ -185,5 +184,8 @@
         </div>
     </footer>
     <script src="js/camera.js"></script>
+
+    <!-- lucide のアイコン初期化は camera.js 内でも使っているため不要だが、念のため実行 -->
+    <script>document.addEventListener('DOMContentLoaded', ()=>{ try{ lucide.createIcons(); }catch(e){} });</script>
 </body>
 </html>

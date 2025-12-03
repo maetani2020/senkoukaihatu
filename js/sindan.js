@@ -634,29 +634,58 @@ async function generateAiPR(result) {
 
 出力は文章のみで、箇条書きや余分な説明文は含めないでください。
 `;
+
+    const prompt = `
+ユーザーの最も強い要素は「${finalElement}」。志望業界は「${selectedIndustry}」です。
+次の情報を元に、上記JSONスキーマに従って出力してください。
+・要素: ${finalElement}
+・志望業界: ${selectedIndustry}
+（注意）余分な説明やメタ情報は書かず、純粋に JSON 文字列のみを返してください。
+`;
+
+    try {
+        // サーバの /api/generate-text に投げる（サーバでAPIキーを使って外部呼び出しを行う）
         const resp = await fetch('/api/generate-text', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt })
+            body: JSON.stringify({ prompt, systemPrompt })
         });
 
         if (!resp.ok) {
             const err = await resp.json().catch(()=>({}));
             throw new Error(err.error || `Server returned ${resp.status}`);
         }
+
         const payload = await resp.json();
         if (!payload.success) {
             throw new Error(payload.error || 'Unknown server error');
         }
-        return payload.text;
-    } catch (err) {
-        console.error('generateAiPR error', err);
-        return null;
-    }
-}
 
+<<<<<<< HEAD
 // --- 初期化実行 ---
 document.addEventListener('DOMContentLoaded', () => {
     renderStart();
     lucide.createIcons();
 });
+=======
+        // server が返す payload.text はテキスト（ここで JSON 文字列が入る想定）
+        let data;
+        try {
+            data = JSON.parse(payload.text);
+        } catch (err) {
+            console.error('Failed to parse JSON from server text:', payload.text, err);
+            throw new Error('AIの返却形式が予期せぬ内容です');
+        }
+
+        // 結果を画面に反映する（既存の renderResult を再利用）
+        // renderResult は元ファイルにあるためそのまま呼び出します
+        renderResult(data);
+
+    } catch (error) {
+        console.error("API / server error:", error);
+        showError("分析に失敗しました。しばらくしてからもう一度お試しください。");
+        // 必要なら元の画面に戻す処理を追加
+        renderStart();
+    }
+}
+>>>>>>> 98cd092b7573afc60746335375b9e1df97f43c9a
