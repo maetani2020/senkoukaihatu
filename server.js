@@ -1,15 +1,17 @@
-// server.js (改良版)
-// ☆ 注意: APIキーは .env に入れます。ここには値を直接書かないでください。
-
 const express = require("express");
 const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
 
 const fetch = global.fetch || (() => {
   try { return require('node-fetch'); } catch (e) { return null; }
 })();
 
-// dotenv を安全に読み込む（未インストールでも動く）
-try { require('dotenv').config(); } catch (e) { console.warn('dotenv not available — continue using environment variables'); }
+try {
+  require('dotenv').config();
+} catch (e) {
+  console.warn('dotenv not available — continue using environment variables');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +20,7 @@ app.use(express.json({ limit: '12mb' }));
 app.use(express.urlencoded({ extended: true, limit: '12mb' }));
 app.use(express.static(__dirname));
 
+// CORS
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -26,34 +29,96 @@ app.use((req, res, next) => {
   next();
 });
 
-// 環境変数（.env）
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || null;
-// GEMINI_API_USE_BEARER を true にすると Authorization: Bearer を使います（推奨: サーバ側でのBearer）
-const USE_BEARER = (process.env.GEMINI_API_USE_BEARER === 'true' || process.env.GEMINI_API_USE_BEARER === '1');
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || null;
 
 if (!GEMINI_API_KEY) {
   console.warn('Warning: GEMINI_API_KEY not set. Set GEMINI_API_KEY in environment or .env (do not commit .env).');
 }
 
-// 汎用呼び出し（URLはモデルの base URL を渡す。内部で key を付けるか Authorization を付ける）
-async function callGeminiApi(apiUrlBase, payload, maxRetries = 3) {
-  if (!fetch) throw new Error('fetch not available. Install node-fetch or use Node 18+');
+// --- ユーザー管理：CSV認証 ---
+const USERS_CSV = path.join(__dirname, "users.csv");
 
+// パスワードをSHA-256ハッシュ化
+function hashPassword(password) {
+    return crypto.createHash('sha256').update(password).digest('hex');
+}
+
+// CSV読み込み
+function readUsersCSV() {
+    if (!fs.existsSync(USERS_CSV)) return [];
+    return fs.readFileSync(USERS_CSV, 'utf8')
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => {
+            const [name, email, password_hash] = line.split(',');
+            return { name, email, password_hash };
+        });
+}
+
+// CSV追記（新規登録）
+// 末尾の改行が無い場合は明示的に追加する
+function appendUserCSV(name, email, passwordHash) {
+    let needNewLine = false;
+    if (fs.existsSync(USERS_CSV)) {
+        const stat = fs.statSync(USERS_CSV);
+        if (stat.size > 0) {
+            const fd = fs.openSync(USERS_CSV, 'r');
+            const buf = Buffer.alloc(1);
+            fs.readSync(fd, buf, 0, 1, stat.size - 1);
+            fs.closeSync(fd);
+            if (buf[0] !== 0x0a && buf[0] !== 0x0d) { // \n or \r
+                needNewLine = true;
+            }
+        }
+    }
+    const line = `${needNewLine ? '\n' : ''}${name},${email},${passwordHash}\n`;
+    fs.appendFileSync(USERS_CSV, line);
+}
+
+// 新規登録API
+app.post("/api/register", (req, res) => {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+        return res.status(400).json({ success: false, error: "Missing required fields" });
+    }
+    const users = readUsersCSV();
+    if (users.find((u) => u.email === email)) {
+        return res.status(409).json({ success: false, error: "Email already exists" });
+    }
+    const passwordHash = hashPassword(password);
+    appendUserCSV(name, email, passwordHash);
+    // セッション管理しない（JWT, Cookieなどは未実装）--簡易
+    res.json({ success: true, user: { name, email } });
+});
+
+// ログインAPI
+app.post("/api/login", (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ success: false, error: "Missing email or password" });
+    }
+    const users = readUsersCSV();
+    const passwordHash = hashPassword(password);
+    const user = users.find(
+        (u) => u.email === email && u.password_hash === passwordHash
+    );
+    if (!user) {
+        return res.status(401).json({ success: false, error: "Invalid credentials" });
+    }
+    res.json({ success: true, user: { name: user.name, email: user.email } });
+});
+
+// （必要に応じてログアウトAPIやセッションAPIを追加してください）
+
+// --- Gemini/AI API連携 ---
+async function callGeminiApi(apiUrl, payload, maxRetries = 3) {
+  if (!fetch) throw new Error('fetch is not available in this environment. Install node-fetch or use Node 18+.');
   let attempt = 0;
+  const headers = { 'Content-Type': 'application/json' };
+
   while (attempt < maxRetries) {
     try {
-      // ヘッダー組立て
-      const headers = { 'Content-Type': 'application/json' };
-      // URL 組立て（Bearer 方式か key パラメータ方式か）
-      let finalUrl = apiUrlBase;
-      if (USE_BEARER) {
-        headers['Authorization'] = `Bearer ${GEMINI_API_KEY}`;
-      } else {
-        const sep = apiUrlBase.includes('?') ? '&' : '?';
-        finalUrl = `${apiUrlBase}${sep}key=${GEMINI_API_KEY}`;
-      }
-
-      const res = await fetch(finalUrl, {
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
@@ -61,24 +126,23 @@ async function callGeminiApi(apiUrlBase, payload, maxRetries = 3) {
 
       if (res.status === 429) {
         const delay = Math.pow(2, attempt) * 1000;
-        await new Promise(r => setTimeout(r, delay));
+        await new Promise(resolve => setTimeout(resolve, delay));
         attempt++;
         continue;
       }
 
-      const json = await res.json().catch(() => null);
+      const json = await res.json();
       return { ok: res.ok, status: res.status, json };
     } catch (err) {
       if (attempt + 1 >= maxRetries) throw err;
       const delay = Math.pow(2, attempt) * 1000;
-      await new Promise(r => setTimeout(r, delay));
+      await new Promise(resolve => setTimeout(resolve, delay));
       attempt++;
     }
   }
   throw new Error('Failed to call Gemini API after retries');
 }
 
-/* ---------- エンドポイント: 画像分析 ---------- */
 app.post('/api/analyze-image', async (req, res) => {
   try {
     if (!GEMINI_API_KEY) return res.status(500).json({ success: false, error: 'Server not configured: GEMINI_API_KEY missing' });
@@ -98,9 +162,9 @@ app.post('/api/analyze-image', async (req, res) => {
       }
     };
 
-    const systemPrompt = `（ここに運用用の system prompt を入れてください。回答に API キーを出さないでください）`;
+    const systemPrompt = `（省略）`; 
 
-    const apiUrlBase = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent';
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
 
     const payload = {
       contents: [
@@ -116,7 +180,7 @@ app.post('/api/analyze-image', async (req, res) => {
       generationConfig: { responseMimeType: 'application/json', responseSchema }
     };
 
-    const { ok, status, json } = await callGeminiApi(apiUrlBase, payload);
+    const { ok, status, json } = await callGeminiApi(apiUrl, payload);
 
     if (!ok) {
       return res.status(status || 500).json({ success: false, error: 'Gemini API error', details: json });
@@ -139,14 +203,13 @@ app.post('/api/analyze-image', async (req, res) => {
   }
 });
 
-/* ---------- エンドポイント: テキスト生成 ---------- */
 app.post('/api/generate-text', async (req, res) => {
   try {
     if (!GEMINI_API_KEY) return res.status(500).json({ success: false, error: 'Server not configured: GEMINI_API_KEY missing' });
     const { prompt, systemPrompt } = req.body;
     if (!prompt) return res.status(400).json({ success: false, error: 'Missing prompt in request body' });
 
-    const apiUrlBase = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent';
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
 
     const payload = {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -154,7 +217,7 @@ app.post('/api/generate-text', async (req, res) => {
       generationConfig: { responseMimeType: 'text/plain' }
     };
 
-    const { ok, status, json } = await callGeminiApi(apiUrlBase, payload);
+    const { ok, status, json } = await callGeminiApi(apiUrl, payload);
     if (!ok) return res.status(status || 500).json({ success: false, error: 'Gemini API error', details: json });
 
     const text = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -165,6 +228,9 @@ app.post('/api/generate-text', async (req, res) => {
   }
 });
 
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'home.html')));
+// --- ルーティング ---
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "home.html"));
+});
 
 app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
