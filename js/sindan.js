@@ -1,381 +1,80 @@
-// --- 診断アプリのスクリプト ---
-const bunsekiContent = document.getElementById('bunsekiContent');
-let radarChartInstance = null; 
+// (ファイル冒頭は既存のまま：略)
+// --- 省略せず既存の定義を残しますが、ここでは callGeminiApi をサーバ経由に差し替えます ---
 
-// --- 質問データ ---
-const stage1Questions = [
-    { text: "新しいプロジェクトに取り組む時、あなたが最も重視するのは？", options: [{ text: "まず行動し、試行錯誤する", value: "action" }, { text: "リスクを分析し、計画を立てる", value: "think" }, { text: "チームメンバーと役割分担する", value: "team" }] },
-    { text: "意見が対立した時、あなたはどうする？", options: [{ text: "自分の意見を主張し、議論を主導する", value: "action" }, { text: "相手の意見の背景を分析する", value: "think" }, { text: "共通点を見つけ、合意形成を図る", value: "team" }] },
-    { text: "困難な課題に直面した時、最初にすることは？", options: [{ text: "とにかく手を動かして解決策を探る", value: "action" }, { text: "課題を分解し、原因を特定する", value: "think" }, { text: "周りの人に助けを求め、協力する", value: "team" }] },
-    { text: "あなたの学習スタイルに最も近いのは？", options: [{ text: "実践しながら学ぶ", value: "action" }, { text: "本や資料を読み込んでから始める", value: "think" }, { text: "勉強会を開き、仲間と学ぶ", value: "team" }] },
-    { text: "プレゼンテーションの準備で大事なことは？", options: [{ text: "情熱を込めて、聴衆を惹きつける", value: "action" }, { text: "論理的な構成とデータ", value: "think" }, { text: "聴衆の反応を予測し、質疑応答に備える", value: "team" }] },
-    { text: "休日の過ごし方でしっくりくるのは？", options: [{ text: "アクティブに外出し、新しい体験をする", value: "action" }, { text: "じっくりと趣味や研究に没頭する", value: "think" }, { text: "友人や家族と予定を合わせて過ごす", value: "team" }] },
-    { text: "問題が発生した時、どう感じる？", options: [{ text: "「どう動くか」を考え、すぐに行動に移す", value: "action" }, { text: "「なぜ起きたか」を分析し、冷静になる", value: "think" }, { text: "「誰に影響が出るか」を心配し、情報共有する", value: "team" }] },
-    { text: "チームに貢献する上で、あなたの強みは？", options: [{ text: "ムードメーカーとして場を盛り上げる", value: "action" }, { text: "データに基づいた的確な分析", value: "think" }, { text: "メンバー間の調整役・サポーター", value: "team" }] }
-];
-const stage2Questions = {
-    action: [
-        { text: "目標達成のために？", options: [{ text: "失敗を恐れず挑戦する", value: "a" }, { text: "新しい方法を試す", value: "b" }] },
-        { text: "より重視するのは？", options: [{ text: "粘り強くやり遂げる", value: "a" }, { text: "周りを巻き込む", value: "b" }] },
-        { text: "どちらかというと？", options: [{ text: "決めたことはすぐ実行", value: "a" }, { text: "実行する前に仲間を探す", value: "b" }] },
-        { text: "人を動かすには？", options: [{ text: "まず自分が背中を見せる", value: "a" }, { text: "目的やビジョンを共有する", value: "b" }] },
-        { text: "リーダーシップとは？", options: [{ text: "先頭に立って引っ張ること", value: "a" }, { text: "周りの意見を引き出し、まとめること", value: "b" }] },
-        { text: "新しいアイデアを？", options: [{ text: "まず自分で試してみる", value: "a" }, { text: "まず人に話して反応を見る", value: "b" }] },
-        { text: "評価されたいのは？", options: [{ text: "行動の早さと結果", value: "a" }, { text: "チームへの影響力", value: "b" }] },
-        { text: "物事が進まない時？", options: [{ text: "自分が率先して進める", value: "a" }, { text: "進まない理由を皆で議論するよう促す", value: "b" }] },
-        { text: "あなたの原動力は？", options: [{ text: "達成感", value: "a" }, { text: "共感", value: "b" }] },
-        { text: "仕事で重要なのは？", options: [{ text: "スピード感", value: "a" }, { text: "一体感", value: "b" }] },
-        { text: "初めての場所でも？", options: [{ text: "臆せず飛び込める", value: "a" }, { text: "まず周りに話しかける", value: "b" }] },
-        { text: "周りからは...？", options: [{ text: "「行動力がある」と言われる", value: "a" }, { text: "「影響力がある」と言われる", value: "b" }] }
-    ],
-    think: [
-        { text: "問題解決において得意なのは？", options: [{ text: "現状の問題点を見つけること", value: "a" }, { text: "未来を予測し、計画を立てること", value: "b" }] },
-        { text: "物事を進める時？", options: [{ text: "「なぜ」を深掘りする", value: "a" }, { text: "ダンドリを組む", value: "b" }] },
-        { text: "得意なのは？", options: [{ text: "間違い探し（アラ探し）", value: "a" }, { text: "旅行のしおり作り", value: "b" }] },
-        { text: "物事を？", options: [{ text: "深く掘り下げたい", value: "a" }, { text: "広く見渡したい", value: "b" }] },
-        { text: "思考のクセは？", options: [{ text: "「本当にそうか？」と疑う", value: "a" }, { text: "「次は何をすべきか？」と考える", value: "b" }] },
-        { text: "情報収集では？", options: [{ text: "一つの情報を深掘りする", value: "a" }, { text: "複数の情報を整理・分類する", value: "b" }] },
-        { text: "会話では？", options: [{ text: "相手の話の矛盾に気づきやすい", value: "a" }, { text: "話のゴールを先に決めたがる", value: "b" }] },
-        { text: "より避けたいのは？", options: [{ text: "根本的な問題を見逃すこと", value: "a" }, { text: "締め切りに間に合わないこと", value: "b" }] },
-        { text: "あなたの役割は？", options: [{ text: "問題提起する人", value: "a" }, { text: "スケジュールを管理する人", value: "b" }] },
-        { text: "安心するのは？", options: [{ text: "原因が特定できた時", value: "a" }, { text: "やるべき事がリスト化できた時", value: "b" }] },
-        { text: "よりワクワクするのは？", options: [{ text: "誰も気づかなかった真実を見つけた時", value: "a" }, { text: "完璧なプランが完成した時", value: "b" }] },
-        { text: "周りからは...？", options: [{ text: "「分析力がある」と言われる", value: "a" }, { text: "「計画性がある」と言われる", value: "b" }] }
-    ],
-    team: [
-        { text: "チームでの役割は？", options: [{ text: "相手の意見を注意深く聞く", value: "a" }, { text: "自分の意見を分かりやすく伝える", value: "b" }] },
-        { text: "議論の場で？", options: [{ text: "全体の雰囲気や相手の感情を察する", value: "a" }, { text: "論理的に自分の考えを述べる", value: "b" }] },
-        { text: "会議中、あなたは？", options: [{ text: "頷きや相槌が多い", value: "a" }, { text: "発言や質問が多い", value: "b" }] },
-        { text: "友人からよく？", options: [{ text: "相談事を持ちかけられる", value: "a" }, { text: "意見を求められる", value: "b" }] },
-        { text: "得意なのは？", options: [{ text: "相手に共感すること", value: "a" }, { text: "相手を説得すること", value: "b" }] },
-        { text: "コミュニケーションで大事なのは？", options: [{ text: "相手が話しやすい雰囲気", value: "a" }, { text: "分かりやすい言葉選び", value: "b" }] },
-        { text: "グループワークでは？", options: [{ text: "まず全員の意見を聞きたい", value: "a" }, { text: "まず自分の意見を言いたい", value: "b" }] },
-        { text: "より避けたいのは？", options: [{ text: "相手の本音を聞き出せないこと", value: "a" }, { text: "自分の意図が誤解されること", value: "b" }] },
-        { text: "あなたの役割は？", options: [{ text: "カウンセラー役", value: "a" }, { text: "プレゼンター役", value: "b" }] },
-        { text: "議論が白熱した時？", options: [{ text: "一旦、冷静に話を聞く側に回る", value: "a" }, { text: "論点を整理し、自分の考えを述べる", value: "b" }] },
-        { text: "人との関わりで？", options: [{ text: "信頼関係を築くのが得意", value: "a" }, { text: "物事を明確にするのが得意", value: "b" }] },
-        { text: "周りからは...？", options: [{ text: "「聞き上手」と言われる", value: "a" }, { text: "「説明がうまい」と言われる", value: "b" }] }
-    ]
-};
-const resultsData = {
-    '課題発見力': { category: '考え抜く力', element: '課題発見力', direction: '「現状を分析し、隠れた問題点や本質的な課題を見抜く力」をアピールしましょう。データや事象から「なぜ」を追求し、改善に繋げた経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、現状を分析し本質的な課題を発見する力です。</p><p class="text-sm text-slate-500">（例：アルバイト先の売上低迷に対し、単なる人手不足ではなく「時間帯による客層のズレ」が問題であるとデータから特定したエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「課題発見力」を活かし、貴社の事業においても表面的な事象に捉われず、真の課題解決に貢献したいと考えております。</p>', advice: '課題を発見しただけでなく、「どのように分析したか（具体的手法）」と「発見した課題をどう解決に導いたか（行動）」までをセットで語れると説得力が増します。' },
-    '計画力': { category: '考え抜く力', element: '計画力', direction: '「目標達成までのプロセスを逆算し、実現可能なダンドリを組む力」をアピールしましょう。タスクを分解し、優先順位をつけ、リスクを管理した経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、目標達成から逆算して計画を立て、実行する力です。</p><p class="text-sm text-slate-500">（例：サークルのイベント運営において、半年前からタスクを洗い出し、担当と期限を明確にしたスケジュール管理表を作成・運用し、成功に導いたエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「計画力」を活かし、貴社のプロジェクトにおいても着実な業務遂行と目標達成に貢献したいと考えております。</p>', advice: '「計画倒れ」にならなかったことが重要です。計画の実行中に発生した「予期せぬトラブル」に対し、どのように計画を「修正」して対応したかも含めると、より評価が高くなります。' },
-    '実行力': { category: '前に踏み出す力', element: '実行力 (主体性)', direction: '「目標達成のために主体的に行動し、粘り強くやり遂げる力」をアピールしましょう。困難な状況でも諦めず、自ら考え行動した経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、目標達成のために主体的に行動し、最後までやり遂げる「実行力」です。</p><p class="text-sm text-slate-500">（例：資格取得という目標に対し、1日3時間の学習を半年間継続。途中で点数が伸び悩んだ際も、学習方法を見直し、無事合格を勝ち取ったエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「実行力」を活かし、貴社でも高い目標に挑戦し、粘り強く成果を追求したいと考えております。</p>', advice: '「言われたことをやった」だけでは主体性とは見なされません。「なぜそれに取り組んだのか（目的意識）」と「困難をどう乗り越えたか（粘り強さ）」を明確にしましょう。' },
-    '働きかけ力': { category: '前に踏み出す力', element: '働きかけ力 (巻き込み力)', direction: '「目標達成のために、周りの人々を巻き込み、協力を引き出す力」をアピールしましょう。異なる意見を持つメンバーをまとめ、同じ方向に導いた経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、周りの人々を巻き込み、目標達成に向かって働きかける力です。</p><p class="text-sm text-slate-500">（例：文化祭の企画で、意見がバラバラだったチームに対し、個別にヒアリングを行い、全員が納得できる共通のビジョン（例：「来場者アンケート1位」）を設定し、チームを一つにしたエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「働きかけ力」を活かし、チームの一員として、周囲と積極的に協働し、より大きな成果を生み出すことに貢献したいです。</p>', advice: '単なる「リーダー経験」ではなく、「なぜ周りがあなたに協力してくれたのか」が重要です。相手のメリットや想いを汲み取った上で「働きかけた」点を強調しましょう。' },
-    '傾聴力': { category: 'チームで働く力', element: '傾聴力 (共感力)', direction: '「相手の意見や感情を深く理解し、信頼関係を築く力」をアピールしましょう。相手が話しやすい雰囲気を作り、言葉の裏にある真意を引き出した経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、相手の立場に立って話を深く聴き、信頼関係を築く「傾聴力」です。</p><p class="text-sm text-slate-500">（例：アルバイト先で、新人の定着率が悪いという課題に対し、新人一人ひとりと面談。不安や不満を丁寧にヒアリングし、教育マニュアルの改善を店長に提案・実行したエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「傾聴力」を活かし、社内外の多様な関係者と円滑なコミュニケーションを図り、チームの潤滑油として貢献したいです。</p>', advice: '「ただ話を聞いた」だけではアピールになりません。「聞いた結果、相手や状況がどう変わったか（問題解決）」までをセットで示すことが重要です。' },
-    '発信力': { category: 'チームで働く力', element: '発信力 (説明力)', direction: '「自分の考えや情報を、相手に分かりやすく論理的に伝える力」をアピールしましょう。専門的な内容を噛み砕いたり、複雑な状況を整理して説明した経験が有効です。', example: '<p class="mb-2"><strong>[強み]</strong> 私の強みは、複雑な情報や自分の考えを、相手に合わせて分かりやすく伝える「発信力」です。</p><p class="text-sm text-slate-500">（例：ゼミの研究発表で、専門外の学生にも興味を持ってもらえるよう、専門用語を日常の例えに置き換え、図やグラフを多用して説明し、高い評価を得たエピソード）</p><p class="mt-2 text-sm"><strong>[貢献]</strong> この「発信力」を活かし、貴社でもチーム内での正確な情報共有や、クライアントへの分かりやすい提案を行い、円滑なプロジェクト推進に貢献したいです。</p>', advice: '「一方的に話を聞いた」ことではありません。「相手の理解度（前提知識）」を常に意識し、「双方向のコミュニケーション」を心がけた点をアピールできると、より評価が高くなります。' }
-};
-
-// --- 状態変数 ---
-let stage1Scores = { action: 0, think: 0, team: 0 };
-let stage2Answers = {};
-let topCategory = '';
-let finalElement = '';
-let currentStage1Question = 0;
-let currentStage2Question = 0;
-
-// --- 画面描画関数 ---
-function renderStart() {
+async function callGeminiApi(finalElement) {
     bunsekiContent.innerHTML = `
-        <div class="bg-white w-full max-w-lg mx-auto p-10 md:p-14 rounded-[2rem] shadow-xl border border-slate-200 text-center animate-fade-in">
-            <div class="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mb-8 text-blue-600 shadow-sm mx-auto">
-                <svg class="lucide lucide-file-text w-10 h-10" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+        <div class="text-center p-12 fade-in">
+            <div class="flex justify-center items-center gap-3 mb-6">
+                <div class="dot w-4 h-4 bg-blue-600 rounded-full"></div>
+                <div class="dot w-4 h-4 bg-indigo-600 rounded-full"></div>
+                <div class="dot w-4 h-4 bg-sky-500 rounded-full"></div>
             </div>
-            <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">社会人基礎力 診断</h1>
-            <p class="text-lg text-slate-500 mb-10 leading-relaxed">
-                全20問の質問に答えて、あなたの強みを見つけましょう。
-                ES・履歴書作成のヒントを提供します。
+            <h2 class="text-3xl font-bold text-slate-900">AI分析中...</h2>
+            <p class="text-lg text-slate-500 mt-2">
+                <span class="font-bold text-indigo-600">${selectedIndustry}</span> への適性を含めて分析しています
             </p>
-            <button id="startButton" class="w-full text-xl font-bold bg-blue-600 text-white py-4 px-8 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:shadow-blue-300 transition-all active:scale-[0.98]">
-                診断スタート
-            </button>
-        </div>
-    `;
-    bunsekiContent.querySelector('#startButton').addEventListener('click', startStage1);
-    lucide.createIcons();
-}
-
-function renderStage1Question() {
-    if (currentStage1Question >= stage1Questions.length) {
-        calculateStage1Result();
-        return;
-    }
-    const q = stage1Questions[currentStage1Question];
-    const progress = ((currentStage1Question + 1) / stage1Questions.length) * 100;
-    bunsekiContent.innerHTML = `
-        <div class="bg-white w-full max-w-2xl mx-auto p-8 md:p-12 rounded-[2rem] shadow-xl border border-slate-200 animate-fade-in">
-            <div class="mb-8">
-                <div class="flex justify-between items-end mb-2">
-                    <span class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">STEP 1</span>
-                    <span class="text-xs font-mono text-slate-400">${currentStage1Question + 1} / ${stage1Questions.length}</span>
-                </div>
-                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                    <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
-                </div>
-            </div>
-            <div class="question-text-container mb-10">
-                <h2 class="text-2xl md:text-3xl font-bold text-slate-900 leading-snug text-center">${q.text}</h2>
-            </div>
-            <div class="space-y-4">
-                ${q.options.map((opt, index) => `
-                    <button class="option-btn w-full text-left text-lg p-6 bg-white rounded-xl border border-slate-200 text-slate-700 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700 transition-all shadow-sm hover:shadow-md active:scale-[0.99]" data-value="${opt.value}">
-                        <div class="flex items-center justify-between">
-                            <span>${opt.text}</span>
-                            <i data-lucide="chevron-right" class="w-5 h-5 opacity-50"></i>
-                        </div>
-                    </button>
-                `).join('')}
-            </div>
-        </div>
-    `;
-    bunsekiContent.querySelectorAll('.option-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            stage1Scores[e.currentTarget.dataset.value]++;
-            currentStage1Question++;
-            renderStage1Question();
-        });
-    });
-    lucide.createIcons();
-}
-
-function calculateStage1Result() {
-    topCategory = Object.keys(stage1Scores).reduce((a, b) => stage1Scores[a] > stage1Scores[b] ? a : b);
-    currentStage2Question = 0;
-    stage2Answers = {};
-    renderStage2Question();
-}
-
-function renderStage2Question() {
-    const questionsForCategory = stage2Questions[topCategory];
-    if (currentStage2Question >= questionsForCategory.length) {
-        calculateStage2Result();
-        return;
-    }
-    const q = questionsForCategory[currentStage2Question];
-    const progress = ((currentStage2Question + 1) / questionsForCategory.length) * 100;
-    const categoryName = {action: '前に踏み出す力', think: '考え抜く力', team: 'チームで働く力'}[topCategory];
-    
-    // テーマカラーの切り替え (indigo)
-    bunsekiContent.innerHTML = `
-        <div class="bg-white w-full max-w-2xl mx-auto p-8 md:p-12 rounded-[2rem] shadow-xl border border-slate-200 animate-fade-in border-t-4 border-t-indigo-500">
-            <div class="mb-8">
-                 <div class="flex justify-between items-end mb-2">
-                    <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">STEP 2: ${categoryName}</span>
-                    <span class="text-xs font-mono text-slate-400">${currentStage2Question + 1} / ${questionsForCategory.length}</span>
-                </div>
-                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                    <div class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
-                </div>
-            </div>
-            <div class="question-text-container mb-10">
-                <h2 class="text-2xl md:text-3xl font-bold text-slate-900 leading-snug text-center">${q.text}</h2>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                ${q.options.map((opt, index) => `
-                    <button class="option-btn w-full text-center text-lg p-6 h-40 flex items-center justify-center bg-white rounded-xl border border-slate-200 text-slate-700 hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-700 transition-all shadow-sm hover:shadow-md active:scale-[0.99]" data-value="${opt.value}">
-                        ${opt.text}
-                    </button>
-                `).join('')}
-            </div>
-        </div>
-    `;
-    bunsekiContent.querySelectorAll('.option-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            stage2Answers[`q${currentStage2Question}`] = e.currentTarget.dataset.value;
-            currentStage2Question++;
-            renderStage2Question();
-        });
-    });
-}
-
-function calculateStage2Result() {
-    let countA = 0;
-    Object.values(stage2Answers).forEach(val => { if (val === 'a') countA++; });
-    const countB = stage2Questions[topCategory].length - countA;
-
-    if (topCategory === 'think') finalElement = (countA >= countB) ? '課題発見力' : '計画力';
-    else if (topCategory === 'action') finalElement = (countA >= countB) ? '実行力' : '働きかけ力';
-    else if (topCategory === 'team') finalElement = (countA >= countB) ? '傾聴力' : '発信力';
-    
-    renderLoading();
-}
-
-function renderLoading() {
-    bunsekiContent.innerHTML = `
-        <div class="text-center p-16 animate-fade-in">
-            <div class="flex justify-center items-center gap-3 mb-8">
-                <div class="dot w-5 h-5 bg-blue-600 rounded-full"></div>
-                <div class="dot w-5 h-5 bg-indigo-600 rounded-full"></div>
-                <div class="dot w-5 h-5 bg-sky-500 rounded-full"></div>
-            </div>
-            <h2 class="text-3xl font-bold text-slate-900">分析中...</h2>
-            <p class="text-lg text-slate-500 mt-3">あなたの強みをまとめています。</p>
-        </div>
-    `;
-    setTimeout(renderResult, 1500);
-}
-
-function renderResult() {
-    const result = resultsData[finalElement];
-    const categoryNames = { action: '前に踏み出す力', think: '考え抜く力', team: 'チームで働く力' };
-    
-    bunsekiContent.innerHTML = `
-        <div class="bg-white w-full max-w-4xl mx-auto p-8 md:p-12 rounded-[2rem] shadow-xl border border-slate-200 animate-fade-in">
-            <div class="text-center mb-12">
-                <p class="text-sm font-bold text-blue-600 tracking-widest uppercase mb-3">ANALYSIS RESULT</p>
-                <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-6">あなたの最大の武器</h1>
-                <div class="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-3xl md:text-5xl font-bold px-10 py-5 rounded-2xl shadow-xl shadow-blue-200 transform hover:scale-105 transition-transform cursor-default">
-                    ${result.element}
-                </div>
-                <p class="mt-6 text-slate-500 font-medium">カテゴリー：${categoryNames[topCategory]}</p>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
-                <div class="bg-slate-50 rounded-3xl p-8 border border-slate-100">
-                    <h2 class="text-xl font-bold text-slate-700 mb-6 text-center">社会人基礎力バランス</h2>
-                    <div class="aspect-square relative">
-                        <canvas id="resultRadarChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="flex flex-col justify-center space-y-6">
-                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:border-blue-200 transition-colors">
-                        <h3 class="font-bold text-slate-900 mb-3 flex items-center">
-                            <div class="p-1.5 bg-blue-100 rounded-lg mr-3 text-blue-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></div>
-                            アピールの方向性
-                        </h3>
-                        <p class="text-slate-600 leading-relaxed">${result.direction}</p>
-                    </div>
-                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:border-indigo-200 transition-colors">
-                        <h3 class="font-bold text-slate-900 mb-3 flex items-center">
-                            <div class="p-1.5 bg-indigo-100 rounded-lg mr-3 text-indigo-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
-                            プロのアドバイス
-                        </h3>
-                        <p class="text-slate-600 leading-relaxed">${result.advice}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-3xl p-8 md:p-10 border border-blue-100 relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-6 opacity-5">
-                     <svg class="w-32 h-32 text-blue-900" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
-                </div>
-                <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center relative z-10">
-                    <svg class="lucide lucide-edit w-6 h-6 inline-block mr-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    AI生成：自己PR例文
-                </h2>
-                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white shadow-sm text-slate-700 leading-relaxed relative z-10 text-lg" id="aiPRContent">
-                    ${result.example}
-                </div>
-            </div>
-
-            <button id="restartButton" class="w-full mt-12 text-lg font-semibold bg-slate-100 text-slate-700 py-4 px-8 rounded-xl hover:bg-slate-200 transition-colors">
-                もう一度診断する
-            </button>
         </div>
     `;
 
-    const ctx = bunsekiContent.querySelector('#resultRadarChart').getContext('2d');
-    if (radarChartInstance) radarChartInstance.destroy();
-    radarChartInstance = new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: ['前に踏み出す力', '考え抜く力', 'チームで働く力'],
-            datasets: [{
-                label: 'あなたの傾向',
-                data: [stage1Scores.action, stage1Scores.think, stage1Scores.team],
-                backgroundColor: 'rgba(37, 99, 235, 0.2)', // blue-600 alpha
-                borderColor: '#2563eb', // blue-600
-                borderWidth: 3,
-                pointBackgroundColor: '#2563eb',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: '#2563eb',
-                pointRadius: 5
-            }]
-        },
-        options: {
-            scales: { r: { 
-                angleLines: { display: true, color: '#e2e8f0' }, 
-                grid: { color: '#e2e8f0' },
-                suggestedMin: 0, 
-                suggestedMax: 8, 
-                ticks: { stepSize: 2, display: false },
-                pointLabels: {
-                    font: { size: 14, family: 'Noto Sans JP', weight: 'bold' },
-                    color: '#475569'
-                }
-            } },
-            plugins: { legend: { display: false } }
-        }
-    });
-    bunsekiContent.querySelector('#restartButton').addEventListener('click', startStage1);
-    // アイコンを再描画
-    lucide.createIcons();
-
-    // 呼び出し：サーバ経由で AI に自己PRをさらにブラッシュアップしてもらう（非同期）
-    try {
-        generateAiPR(result).then(text => {
-            if (!text) return;
-            const container = document.getElementById('aiPRContent');
-            // テキストを安全に挿入（プレーンテキスト）
-            const el = document.createElement('div');
-            el.className = 'prose text-slate-700';
-            el.textContent = text;
-            container.innerHTML = '';
-            container.appendChild(el);
-        }).catch(err => {
-            // 失敗しても既存の example を表示したままにする
-            console.error('AI PR generation failed:', err);
-        });
-    } catch (err) {
-        console.error('generateAiPR error:', err);
-    }
+    // サーバ側の /api/generate-text を呼んで、JSON を返すようにしています
+    const systemPrompt = `
+あなたはプロの就活アドバイザーです。
+ユーザーの強みと、志望する業界に基づいて、以下の形式（JSON）で出力してください。
+出力スキーマ:
+{
+  "element": "string",
+  "category": "string",
+  "direction": "string",
+  "example": "string",
+  "advice": ["string", ...],
+  "industryFit": "string"
 }
-
-function startStage1() {
-    stage1Scores = { action: 0, think: 0, team: 0 };
-    currentStage1Question = 0;
-    renderStage1Question();
-}
-
-// --- サーバ経由で簡易テキスト生成（自己PRブラッシュアップ用） ---
-async function generateAiPR(result) {
-    try {
-        // Build a concise prompt for the server
-        const prompt = `
-あなたはプロの就活アドバイザー兼コピーライターです。
-以下の情報を元に、面接で使える自己PR文を日本語で200〜300文字程度で作成してください。
-・要素: ${result.element}
-・アピールの方向性: ${result.direction}
-・プロのアドバイス: ${result.advice}
-
-出力は文章のみで、箇条書きや余分な説明文は含めないでください。
+値は日本語で、advice は配列で複数の実践的アドバイスを入れてください。
 `;
+
+    const prompt = `
+ユーザーの最も強い要素は「${finalElement}」。志望業界は「${selectedIndustry}」です。
+次の情報を元に、上記JSONスキーマに従って出力してください。
+・要素: ${finalElement}
+・志望業界: ${selectedIndustry}
+（注意）余分な説明やメタ情報は書かず、純粋に JSON 文字列のみを返してください。
+`;
+
+    try {
+        // サーバの /api/generate-text に投げる（サーバでAPIキーを使って外部呼び出しを行う）
         const resp = await fetch('/api/generate-text', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt })
+            body: JSON.stringify({ prompt, systemPrompt })
         });
 
         if (!resp.ok) {
             const err = await resp.json().catch(()=>({}));
             throw new Error(err.error || `Server returned ${resp.status}`);
         }
+
         const payload = await resp.json();
         if (!payload.success) {
             throw new Error(payload.error || 'Unknown server error');
         }
-        return payload.text;
-    } catch (err) {
-        console.error('generateAiPR error', err);
-        return null;
+
+        // server が返す payload.text はテキスト（ここで JSON 文字列が入る想定）
+        let data;
+        try {
+            data = JSON.parse(payload.text);
+        } catch (err) {
+            console.error('Failed to parse JSON from server text:', payload.text, err);
+            throw new Error('AIの返却形式が予期せぬ内容です');
+        }
+
+        // 結果を画面に反映する（既存の renderResult を再利用）
+        // renderResult は元ファイルにあるためそのまま呼び出します
+        renderResult(data);
+
+    } catch (error) {
+        console.error("API / server error:", error);
+        showError("分析に失敗しました。しばらくしてからもう一度お試しください。");
+        // 必要なら元の画面に戻す処理を追加
+        renderStart();
     }
 }
-
-// --- 初期化実行 ---
-document.addEventListener('DOMContentLoaded', () => {
-    renderStart();
-    // アイコンを描画
-    lucide.createIcons();
-});

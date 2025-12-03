@@ -3,13 +3,11 @@ lucide.createIcons();
 
 // --- モーダル制御 ---
 function setupModal(btnId, modalId, contentId, overlayId, wrapperId, closeBtnIds) {
-    const btn = document.getElementById(btnId);
+    const btn = btnId ? document.getElementById(btnId) : null;
     const modal = document.getElementById(modalId);
     const content = document.getElementById(contentId);
     const overlay = document.getElementById(overlayId);
     const wrapper = document.getElementById(wrapperId);
-    
-    // closeBtnIds は配列で受け取る
     const closeBtns = closeBtnIds.map(id => document.getElementById(id)).filter(el => el);
 
     const open = () => {
@@ -30,13 +28,11 @@ function setupModal(btnId, modalId, contentId, overlayId, wrapperId, closeBtnIds
 
     if(btn) btn.addEventListener('click', open);
     closeBtns.forEach(b => b.addEventListener('click', close));
-    
     if(wrapper) {
         wrapper.addEventListener('click', (e) => {
             if (!content.contains(e.target)) close();
         });
     }
-    
     return { open, close };
 }
 
@@ -44,72 +40,64 @@ function setupModal(btnId, modalId, contentId, overlayId, wrapperId, closeBtnIds
 setupModal('helpButton', 'helpModal', 'helpContent', 'helpOverlay', 'modalWrapper', ['closeHelpBtn', 'closeHelpBtnBottom']);
 
 // 認証モーダル（ログイン/登録）
-// ※ ログインボタンと登録ボタンの2箇所から開くため、戻り値の open 関数を使う
 const authModalCtrl = setupModal(null, 'authModal', 'authContent', 'authOverlay', 'authModalWrapper', ['closeAuthBtn']);
 
-// --- 認証ロジック (LocalStorage) ---
+// --- 認証ロジック: サーバAPIとの連携 ---
 const Auth = {
-    KEY: 'career_app_users',      // ユーザー情報の保存キー
-    SESSION_KEY: 'career_app_session', // ログイン状態の保存キー
-    
-    // ユーザー一覧を取得
-    getUsers() {
-        return JSON.parse(localStorage.getItem(this.KEY) || '[]');
-    },
-    
-    // 新規登録
-    register(name, email, password) {
-        const users = this.getUsers();
-        // 重複チェック
-        if (users.find(u => u.email === email)) {
-            alert('このメールアドレスは既に登録されています。');
-            return false;
-        }
-        
-        // ユーザー追加
-        const newUser = { id: Date.now(), name, email, password };
-        users.push(newUser);
-        localStorage.setItem(this.KEY, JSON.stringify(users));
-        
-        // 自動ログイン
-        this.login(email, password);
-        return true;
-    },
-    
-    // ログイン
-    login(email, password) {
-        const users = this.getUsers();
-        const user = users.find(u => u.email === email && u.password === password);
-        
-        if (user) {
-            // セッションに保存 (パスワードは除外するフリ)
-            const sessionUser = { ...user };
-            // 実際はDBではないのでここにあるpasswordは消しても消さなくてもlocalStorageには残るが、
-            // セッション管理としては消しておくのがマナー
-            delete sessionUser.password; 
-            localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionUser));
-            
+    currentUser: null, // メモリ上でログインユーザー保持
+
+    async register(name, email, password) {
+        try {
+            const resp = await fetch('/api/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name, email, password })
+            });
+            const data = await resp.json();
+            if (!resp.ok || !data.success) {
+                alert(data.error || '登録に失敗しました');
+                return false;
+            }
+            this.currentUser = data.user;
             this.updateUI();
             return true;
-        } else {
-            alert('メールアドレスまたはパスワードが間違っています。');
+        } catch (err) {
+            alert('ネットワークエラー: ' + err);
             return false;
         }
     },
-    
-    // ログアウト
+
+    async login(email, password) {
+        try {
+            const resp = await fetch('/api/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ email, password })
+            });
+            const data = await resp.json();
+            if (!resp.ok || !data.success) {
+                alert(data.error || 'ログインできませんでした');
+                return false;
+            }
+            this.currentUser = data.user;
+            this.updateUI();
+            return true;
+        } catch (err) {
+            alert('ネットワークエラー: ' + err);
+            return false;
+        }
+    },
+
     logout() {
-        localStorage.removeItem(this.SESSION_KEY);
+        this.currentUser = null;
         this.updateUI();
-        alert('ログアウトしました。');
+        alert('ログアウトしました');
     },
-    
-    // 現在のユーザーを取得
+
     getCurrentUser() {
-        return JSON.parse(localStorage.getItem(this.SESSION_KEY));
+        return this.currentUser;
     },
-    
-    // UI更新 (ヘッダーの切り替え)
+
     updateUI() {
         const user = this.getCurrentUser();
         const authButtons = document.getElementById('authButtons');
@@ -122,7 +110,7 @@ const Auth = {
             userMenu.classList.remove('hidden');
             userMenu.classList.add('flex');
             userNameDisplay.textContent = user.name;
-            userAvatar.textContent = user.name.charAt(0).toUpperCase(); // 頭文字
+            userAvatar.textContent = user.name.charAt(0).toUpperCase();
         } else {
             authButtons.classList.remove('hidden');
             userMenu.classList.add('hidden');
@@ -161,16 +149,14 @@ document.getElementById('showRegisterLink').addEventListener('click', () => togg
 document.getElementById('showLoginLink').addEventListener('click', () => toggleAuthMode('login'));
 
 // 登録実行
-document.getElementById('doRegisterBtn').addEventListener('click', () => {
+document.getElementById('doRegisterBtn').addEventListener('click', async () => {
     const name = document.getElementById('regName').value;
     const email = document.getElementById('regEmail').value;
     const pass = document.getElementById('regPassword').value;
-    
     if(name && email && pass) {
-        if(Auth.register(name, email, pass)) {
+        if(await Auth.register(name, email, pass)) {
             authModalCtrl.close();
             alert('登録が完了しました！ようこそ ' + name + ' さん');
-            // 入力欄クリア
             document.getElementById('regName').value = '';
             document.getElementById('regEmail').value = '';
             document.getElementById('regPassword').value = '';
@@ -181,14 +167,12 @@ document.getElementById('doRegisterBtn').addEventListener('click', () => {
 });
 
 // ログイン実行
-document.getElementById('doLoginBtn').addEventListener('click', () => {
+document.getElementById('doLoginBtn').addEventListener('click', async () => {
     const email = document.getElementById('loginEmail').value;
     const pass = document.getElementById('loginPassword').value;
-    
     if(email && pass) {
-        if(Auth.login(email, pass)) {
+        if(await Auth.login(email, pass)) {
             authModalCtrl.close();
-            // 入力欄クリア
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
         }
@@ -209,7 +193,6 @@ Auth.updateUI();
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         if (!document.getElementById('helpModal').classList.contains('hidden')) {
-            // help close logic handled by setupModal internals or simplistic approach:
             document.getElementById('closeHelpBtn').click();
         }
         if (!document.getElementById('authModal').classList.contains('hidden')) {
