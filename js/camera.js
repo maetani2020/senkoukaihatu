@@ -1,6 +1,6 @@
 // --- 要素取得 ---
 const sceneSelect = document.getElementById('sceneSelect');
-const attireSelect = document.getElementById('attireSelect');
+const attireSelect = document.getElementById('attireSelect'); // 新規追加
 const btnUseCamera = document.getElementById('btnUseCamera');
 const btnUseUpload = document.getElementById('btnUseUpload');
 const cameraUi = document.getElementById('cameraUi');
@@ -30,7 +30,7 @@ const scoreBenchmarkEl = document.getElementById('scoreBenchmark');
 
 // --- 状態管理 ---
 let selectedScene = "";
-let selectedAttire = "";
+let selectedAttire = ""; // 新規追加
 let selectedArea = "";
 let base64Image = null;
 let mimeType = null;
@@ -75,11 +75,13 @@ sceneSelect.addEventListener('change', (e) => {
     checkAnalyzeButtonState();
 });
 
+// 服装選択のイベントリスナー（新規追加）
 attireSelect.addEventListener('change', (e) => {
     selectedAttire = e.target.value;
     checkAnalyzeButtonState();
 });
 
+// エリア選択
 areaButtons.forEach(btn => {
     btn.addEventListener('click', () => {
         areaButtons.forEach(b => b.classList.remove('selected'));
@@ -89,6 +91,7 @@ areaButtons.forEach(btn => {
     });
 });
 
+// タイマー選択
 timerButtons.forEach(btn => {
     btn.addEventListener('click', () => {
         timerButtons.forEach(b => b.classList.remove('selected'));
@@ -234,7 +237,7 @@ function handleRetake() {
 function checkAnalyzeButtonState() {
     let msg = "";
     if (!selectedScene) msg = "1. 分析したい場面を選択してください";
-    else if (!selectedAttire) msg = "2. 分析したい服装を選択してください";
+    else if (!selectedAttire) msg = "2. 分析したい服装を選択してください"; // 新規条件
     else if (!selectedArea) msg = "3. 分析する範囲を選択してください";
     else if (!base64Image) msg = "4. 写真を準備してください";
     

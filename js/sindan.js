@@ -153,7 +153,7 @@ window.handleBack = function() {
             renderStage2Question();
         }
     }
-};
+        };
 
 // --- 画面描画関数 ---
 function renderStart() {
@@ -432,6 +432,10 @@ JSON形式で出力してください。
                 resilience: '精神力'
             };
             data.category = categoryNames[topCategory]; 
+            
+            // ★ 履歴保存処理を追加 ★
+            saveHistory(data);
+
             renderResult(data);
         } else {
             throw new Error('No content in response');
@@ -440,6 +444,40 @@ JSON形式で出力してください。
     } catch (error) {
         console.error("Fetch error:", error);
         showError("分析に失敗しました。しばらくしてからもう一度お試しください。");
+    }
+}
+
+// ★ 履歴保存関数 ★
+function saveHistory(data) {
+    try {
+        const SESSION_KEY = 'career_app_session';
+        const HISTORY_KEY_PREFIX = 'career_app_history_';
+        
+        const user = JSON.parse(localStorage.getItem(SESSION_KEY));
+        if (!user) return; // ログインしていなければ保存しない
+
+        const key = HISTORY_KEY_PREFIX + user.id;
+        const histories = JSON.parse(localStorage.getItem(key) || '[]');
+        
+        const now = new Date();
+        const dateStr = now.getFullYear() + '/' + (now.getMonth()+1) + '/' + now.getDate() + ' ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+
+        const newHistory = {
+            id: Date.now(),
+            type: 'sindan',
+            date: dateStr,
+            title: `強み：${data.element}`,
+            summary: `志望業界: ${selectedIndustry || '未設定'} / カテゴリ: ${data.category}`,
+            // 詳細データも保存しておくと将来的に詳細画面が作れる
+            details: data
+        };
+        
+        histories.push(newHistory);
+        localStorage.setItem(key, JSON.stringify(histories));
+        console.log("History saved");
+
+    } catch(e) {
+        console.error("Save history failed", e);
     }
 }
 

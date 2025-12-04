@@ -1,15 +1,12 @@
-// アイコン初期化
 lucide.createIcons();
 
 // --- モーダル制御 ---
 function setupModal(btnId, modalId, contentId, overlayId, wrapperId, closeBtnIds) {
-    const btn = btnId ? document.getElementById(btnId) : null;
+    const btn = document.getElementById(btnId);
     const modal = document.getElementById(modalId);
     const content = document.getElementById(contentId);
     const overlay = document.getElementById(overlayId);
     const wrapper = document.getElementById(wrapperId);
-    
-    // 閉じるボタン（配列対応）
     const closeBtns = closeBtnIds.map(id => document.getElementById(id)).filter(el => el);
 
     const open = () => {
@@ -31,7 +28,6 @@ function setupModal(btnId, modalId, contentId, overlayId, wrapperId, closeBtnIds
     if(btn) btn.addEventListener('click', open);
     closeBtns.forEach(b => b.addEventListener('click', close));
     
-    // 背景クリックで閉じる
     if(wrapper) {
         wrapper.addEventListener('click', (e) => {
             if (!content.contains(e.target)) close();
@@ -40,44 +36,37 @@ function setupModal(btnId, modalId, contentId, overlayId, wrapperId, closeBtnIds
     return { open, close };
 }
 
-// モーダル初期化
 setupModal('helpButton', 'helpModal', 'helpContent', 'helpOverlay', 'modalWrapper', ['closeHelpBtn', 'closeHelpBtnBottom']);
 const authModalCtrl = setupModal(null, 'authModal', 'authContent', 'authOverlay', 'authModalWrapper', ['closeAuthBtn']);
+// 履歴モーダル制御
 const historyModalCtrl = setupModal(null, 'historyModal', 'historyContent', 'historyOverlay', 'historyModalWrapper', ['closeHistoryBtn', 'closeHistoryBtnBottom']);
 
 // --- ドロップダウンメニュー制御 ---
 const userMenuBtn = document.getElementById('userMenuBtn');
 const userDropdown = document.getElementById('userDropdown');
 
-if (userMenuBtn && userDropdown) {
-    userMenuBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        userDropdown.classList.toggle('hidden');
-    });
+userMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    userDropdown.classList.toggle('hidden');
+});
 
-    document.addEventListener('click', (e) => {
-        if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
-            userDropdown.classList.add('hidden');
-        }
-    });
-}
+document.addEventListener('click', (e) => {
+    if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+        userDropdown.classList.add('hidden');
+    }
+});
 
-// --- 認証 & 履歴ロジック ---
+// --- ロジック ---
 const Auth = {
     KEY: 'career_app_users',      
     SESSION_KEY: 'career_app_session',
     HISTORY_KEY_PREFIX: 'career_app_history_',
 
-    getUsers() {
-        return JSON.parse(localStorage.getItem(this.KEY) || '[]');
-    },
+    getUsers() { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); },
     
     register(name, email, password) {
         const users = this.getUsers();
-        if (users.find(u => u.email === email)) {
-            alert('このメールアドレスは既に登録されています。');
-            return false;
-        }
+        if (users.find(u => u.email === email)) { alert('このメールアドレスは既に登録されています。'); return false; }
         const newUser = { id: Date.now().toString(), name, email, password };
         users.push(newUser);
         localStorage.setItem(this.KEY, JSON.stringify(users));
@@ -94,22 +83,20 @@ const Auth = {
             localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionUser));
             this.updateUI();
             return true;
-        } catch (err) {
-            alert('ネットワークエラー: ' + err);
+        } else {
+            alert('メールアドレスまたはパスワードが間違っています。');
             return false;
         }
     },
     
     logout() {
         localStorage.removeItem(this.SESSION_KEY);
-        if (userDropdown) userDropdown.classList.add('hidden'); 
+        userDropdown.classList.add('hidden'); // メニューを閉じる
         this.updateUI();
-        alert('ログアウトしました');
+        alert('ログアウトしました。');
     },
     
-    getCurrentUser() {
-        return this.currentUser;
-    },
+    getCurrentUser() { return JSON.parse(localStorage.getItem(this.SESSION_KEY)); },
     
     // 履歴取得
     getHistory() {
@@ -130,9 +117,9 @@ const Auth = {
         if (user) {
             authButtons.classList.add('hidden');
             userMenu.classList.remove('hidden');
-            if (userNameDisplay) userNameDisplay.textContent = user.name;
-            if (userEmailDisplay) userEmailDisplay.textContent = user.email;
-            if (userAvatar) userAvatar.textContent = user.name.charAt(0).toUpperCase();
+            userNameDisplay.textContent = user.name;
+            userEmailDisplay.textContent = user.email;
+            userAvatar.textContent = user.name.charAt(0).toUpperCase();
         } else {
             authButtons.classList.remove('hidden');
             userMenu.classList.add('hidden');
@@ -145,18 +132,14 @@ const historyBtn = document.getElementById('historyBtn');
 const historyList = document.getElementById('historyList');
 const emptyHistory = document.getElementById('emptyHistory');
 
-if (historyBtn) {
-    historyBtn.addEventListener('click', () => {
-        if (userDropdown) userDropdown.classList.add('hidden');
-        renderHistory();
-        historyModalCtrl.open();
-    });
-}
+historyBtn.addEventListener('click', () => {
+    userDropdown.classList.add('hidden');
+    renderHistory();
+    historyModalCtrl.open();
+});
 
 function renderHistory() {
     const histories = Auth.getHistory();
-    if (!historyList) return;
-    
     historyList.innerHTML = '';
     
     if (histories.length === 0) {
@@ -203,7 +186,7 @@ function renderHistory() {
     }
 }
 
-// --- イベントリスナー設定 ---
+// --- イベント ---
 const loginBtn = document.getElementById('loginBtn');
 if (loginBtn) {
     loginBtn.addEventListener('click', () => { toggleAuthMode('login'); authModalCtrl.open(); });
@@ -235,7 +218,7 @@ document.getElementById('doRegisterBtn').addEventListener('click', () => {
     const email = document.getElementById('regEmail').value;
     const pass = document.getElementById('regPassword').value;
     if(name && email && pass) {
-        if(await Auth.register(name, email, pass)) {
+        if(Auth.register(name, email, pass)) {
             authModalCtrl.close();
             document.getElementById('regName').value = '';
             document.getElementById('regEmail').value = '';
@@ -248,7 +231,7 @@ document.getElementById('doLoginBtn').addEventListener('click', () => {
     const email = document.getElementById('loginEmail').value;
     const pass = document.getElementById('loginPassword').value;
     if(email && pass) {
-        if(await Auth.login(email, pass)) {
+        if(Auth.login(email, pass)) {
             authModalCtrl.close();
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
@@ -258,10 +241,9 @@ document.getElementById('doLoginBtn').addEventListener('click', () => {
 
 document.getElementById('logoutBtn').addEventListener('click', () => { Auth.logout(); });
 
-// 初期化実行
+// 初期化
 Auth.updateUI();
 
-// ESCキーでモーダルを閉じる
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         if (!document.getElementById('helpModal').classList.contains('hidden')) document.getElementById('closeHelpBtn').click();
