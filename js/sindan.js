@@ -22,11 +22,11 @@ let answerHistory = [];
 
 // --- 画像のマッピング ---
 const categoryImages = {
-    action: 'image/koudou.png',
-    logic: 'image/ronri.png',
-    team: 'image/kyoutyou.png',
-    creative: 'image/souzou.png',
-    resilience: 'image/seisin.png'
+    action: 'koudou.jpg',
+    logic: 'ronri.jpg',
+    team: 'kyoutyou.jpg',
+    creative: 'souzou.jpg',
+    resilience: 'seisin.jpg'
 };
 
 // --- 業種リスト ---
@@ -499,7 +499,7 @@ function renderResult(result) {
                     <svg class="lucide lucide-edit w-6 h-6 inline-block mr-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     AI生成：自己PR例文
                 </h2>
-                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white shadow-sm text-slate-700 leading-relaxed relative z-10 text-lg" id="aiPRContent">
+                <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white shadow-sm text-slate-700 leading-relaxed relative z-10 text-lg">
                     ${result.example}
                 </div>
             </div>
@@ -573,25 +573,6 @@ function renderResult(result) {
     });
     bunsekiContent.querySelector('#restartButton').addEventListener('click', renderStart);
     lucide.createIcons();
-
-    // 呼び出し：サーバ経由で AI に自己PRをさらにブラッシュアップしてもらう（非同期）
-    try {
-        generateAiPR(result).then(text => {
-            if (!text) return;
-            const container = document.getElementById('aiPRContent');
-            // テキストを安全に挿入（プレーンテキスト）
-            const el = document.createElement('div');
-            el.className = 'prose text-slate-700';
-            el.textContent = text;
-            container.innerHTML = '';
-            container.appendChild(el);
-        }).catch(err => {
-            // 失敗しても既存の example を表示したままにする
-            console.error('AI PR generation failed:', err);
-        });
-    } catch (err) {
-        console.error('generateAiPR error:', err);
-    }
 }
 
 // --- UIヘルパー ---
@@ -621,71 +602,8 @@ async function fetchWithBackoff(url, options, maxRetries = 3, baseDelay = 1000) 
     throw new Error('API request failed after all retries.');
 }
 
-// --- サーバ経由で簡易テキスト生成（自己PRブラッシュアップ用） ---
-async function generateAiPR(result) {
-    try {
-        // Build a concise prompt for the server
-        const prompt = `
-あなたはプロの就活アドバイザー兼コピーライターです。
-以下の情報を元に、面接で使える自己PR文を日本語で200〜300文字程度で作成してください。
-・要素: ${result.element}
-・アピールの方向性: ${result.direction}
-・プロのアドバイス: ${result.advice}
-
-出力は文章のみで、箇条書きや余分な説明文は含めないでください。
-`;
-
-    const prompt = `
-ユーザーの最も強い要素は「${finalElement}」。志望業界は「${selectedIndustry}」です。
-次の情報を元に、上記JSONスキーマに従って出力してください。
-・要素: ${finalElement}
-・志望業界: ${selectedIndustry}
-（注意）余分な説明やメタ情報は書かず、純粋に JSON 文字列のみを返してください。
-`;
-
-    try {
-        // サーバの /api/generate-text に投げる（サーバでAPIキーを使って外部呼び出しを行う）
-        const resp = await fetch('/api/generate-text', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, systemPrompt })
-        });
-
-        if (!resp.ok) {
-            const err = await resp.json().catch(()=>({}));
-            throw new Error(err.error || `Server returned ${resp.status}`);
-        }
-
-        const payload = await resp.json();
-        if (!payload.success) {
-            throw new Error(payload.error || 'Unknown server error');
-        }
-
-<<<<<<< HEAD
 // --- 初期化実行 ---
 document.addEventListener('DOMContentLoaded', () => {
     renderStart();
     lucide.createIcons();
 });
-=======
-        // server が返す payload.text はテキスト（ここで JSON 文字列が入る想定）
-        let data;
-        try {
-            data = JSON.parse(payload.text);
-        } catch (err) {
-            console.error('Failed to parse JSON from server text:', payload.text, err);
-            throw new Error('AIの返却形式が予期せぬ内容です');
-        }
-
-        // 結果を画面に反映する（既存の renderResult を再利用）
-        // renderResult は元ファイルにあるためそのまま呼び出します
-        renderResult(data);
-
-    } catch (error) {
-        console.error("API / server error:", error);
-        showError("分析に失敗しました。しばらくしてからもう一度お試しください。");
-        // 必要なら元の画面に戻す処理を追加
-        renderStart();
-    }
-}
->>>>>>> 98cd092b7573afc60746335375b9e1df97f43c9a
