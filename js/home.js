@@ -3,7 +3,7 @@ lucide.createIcons();
 
 // --- モーダル制御 ---
 function setupModal(btnId, modalId, contentId, overlayId, wrapperId, closeBtnIds) {
-    const btn = document.getElementById(btnId);
+    const btn = btnId ? document.getElementById(btnId) : null;
     const modal = document.getElementById(modalId);
     const content = document.getElementById(contentId);
     const overlay = document.getElementById(overlayId);
@@ -37,7 +37,6 @@ function setupModal(btnId, modalId, contentId, overlayId, wrapperId, closeBtnIds
             if (!content.contains(e.target)) close();
         });
     }
-    
     return { open, close };
 }
 
@@ -95,8 +94,8 @@ const Auth = {
             localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionUser));
             this.updateUI();
             return true;
-        } else {
-            alert('メールアドレスまたはパスワードが間違っています。');
+        } catch (err) {
+            alert('ネットワークエラー: ' + err);
             return false;
         }
     },
@@ -105,11 +104,11 @@ const Auth = {
         localStorage.removeItem(this.SESSION_KEY);
         if (userDropdown) userDropdown.classList.add('hidden'); 
         this.updateUI();
-        alert('ログアウトしました。');
+        alert('ログアウトしました');
     },
     
     getCurrentUser() {
-        return JSON.parse(localStorage.getItem(this.SESSION_KEY));
+        return this.currentUser;
     },
     
     // 履歴取得
@@ -236,7 +235,7 @@ document.getElementById('doRegisterBtn').addEventListener('click', () => {
     const email = document.getElementById('regEmail').value;
     const pass = document.getElementById('regPassword').value;
     if(name && email && pass) {
-        if(Auth.register(name, email, pass)) {
+        if(await Auth.register(name, email, pass)) {
             authModalCtrl.close();
             document.getElementById('regName').value = '';
             document.getElementById('regEmail').value = '';
@@ -249,7 +248,7 @@ document.getElementById('doLoginBtn').addEventListener('click', () => {
     const email = document.getElementById('loginEmail').value;
     const pass = document.getElementById('loginPassword').value;
     if(email && pass) {
-        if(Auth.login(email, pass)) {
+        if(await Auth.login(email, pass)) {
             authModalCtrl.close();
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
