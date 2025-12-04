@@ -22,11 +22,11 @@ let answerHistory = [];
 
 // --- 画像のマッピング ---
 const categoryImages = {
-    action: 'koudou.jpg',
-    logic: 'ronri.jpg',
-    team: 'kyoutyou.jpg',
-    creative: 'souzou.jpg',
-    resilience: 'seisin.jpg'
+    action: 'image/koudou.jpg',
+    logic: 'image/ronri.jpg',
+    team: 'image/kyoutyou.jpg',
+    creative: 'image/souzou.jpg',
+    resilience: 'image/seisin.jpg'
 };
 
 // --- 業種リスト ---
@@ -69,32 +69,42 @@ const stage1Questions = [
     { text: "ストレスを感じる状況でも、冷静さを保つことができる", category: "resilience" }
 ];
 
-// --- 質問データ (STEP2: 各カテゴリに対応) ---
+// --- 質問データ (STEP2: 各カテゴリ5問) ---
 const stage2QuestionsData = {
     action: [
         { text: "一度決めたことは、何があっても最後までやり抜く", element: "実行力" },
         { text: "目標達成のためなら、泥臭い努力もいとわない", element: "実行力" },
-        { text: "自分から積極的に周囲に働きかけ、協力を仰ぐことができる", element: "働きかけ力" }
+        { text: "自分から積極的に周囲に働きかけ、協力を仰ぐことができる", element: "働きかけ力" },
+        { text: "自ら課題を見つけ、指示を待たずに動くことができる", element: "主体性" },
+        { text: "未経験の分野でも、物怖じせずに飛び込むことができる", element: "チャレンジ精神" }
     ],
     logic: [
         { text: "「なぜ？」と疑問を持ち、根本的な原因を突き止めるのが好きだ", element: "課題発見力" },
         { text: "データや事実に基づいて、客観的に物事を判断する", element: "課題発見力" },
-        { text: "ゴールから逆算して、無理のないスケジュールを立てることができる", element: "計画力" }
+        { text: "ゴールから逆算して、無理のないスケジュールを立てることができる", element: "計画力" },
+        { text: "複雑な情報を整理し、要点を分かりやすくまとめるのが得意だ", element: "構造化能力" },
+        { text: "感情に流されず、メリット・デメリットを冷静に比較検討できる", element: "判断力" }
     ],
     team: [
         { text: "複雑な物事を、誰にでも分かる言葉で説明するのが得意だ", element: "発信力" },
         { text: "チームの雰囲気を盛り上げ、一体感を作るのが得意だ", element: "柔軟性" },
-        { text: "相手の立場に立って物事を考え、共感することができる", element: "傾聴力" }
+        { text: "相手の立場に立って物事を考え、共感することができる", element: "傾聴力" },
+        { text: "意見が対立した際、妥協点を見つけて調整するのが得意だ", element: "調整力" },
+        { text: "チームのルールや約束事を尊重し、規律を守ることを大切にする", element: "規律性" }
     ],
     creative: [
         { text: "誰も思いつかないような斬新なアイデアを出すのが得意だ", element: "創造力" },
         { text: "状況の変化に合わせて、柔軟にやり方を変えることができる", element: "柔軟性" },
-        { text: "現状に満足せず、常により良い方法を探求している", element: "改善力" }
+        { text: "現状に満足せず、常により良い方法を探求している", element: "改善力" },
+        { text: "異分野の知識を組み合わせて、新しいアイデアを生み出すのが好きだ", element: "発想力" },
+        { text: "「当たり前」を疑い、常に新しい可能性を探っている", element: "探究心" }
     ],
     resilience: [
         { text: "プレッシャーがかかる場面でも、実力を発揮できる", element: "ストレス耐性" },
         { text: "地味な作業でも、コツコツと真面目に取り組める", element: "継続力" },
-        { text: "自分の役割を理解し、責任を持って全うする", element: "規律性" }
+        { text: "自分の役割を理解し、責任を持って全うする", element: "規律性" },
+        { text: "予期せぬトラブルが起きても、パニックにならず冷静に対処できる", element: "状況対応力" },
+        { text: "批判や失敗を成長の糧として、ポジティブに受け止めることができる", element: "受容力" }
     ]
 };
 
@@ -143,7 +153,7 @@ window.handleBack = function() {
             renderStage2Question();
         }
     }
-        };
+};
 
 // --- 画面描画関数 ---
 function renderStart() {
