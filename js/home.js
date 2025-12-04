@@ -1,4 +1,4 @@
-// アイコンの初期化
+// アイコン初期化
 lucide.createIcons();
 
 // --- モーダル制御 ---
@@ -9,7 +9,7 @@ function setupModal(btnId, modalId, contentId, overlayId, wrapperId, closeBtnIds
     const overlay = document.getElementById(overlayId);
     const wrapper = document.getElementById(wrapperId);
     
-    // closeBtnIds は配列で受け取る
+    // 閉じるボタン（配列対応）
     const closeBtns = closeBtnIds.map(id => document.getElementById(id)).filter(el => el);
 
     const open = () => {
@@ -31,6 +31,7 @@ function setupModal(btnId, modalId, contentId, overlayId, wrapperId, closeBtnIds
     if(btn) btn.addEventListener('click', open);
     closeBtns.forEach(b => b.addEventListener('click', close));
     
+    // 背景クリックで閉じる
     if(wrapper) {
         wrapper.addEventListener('click', (e) => {
             if (!content.contains(e.target)) close();
@@ -40,55 +41,58 @@ function setupModal(btnId, modalId, contentId, overlayId, wrapperId, closeBtnIds
     return { open, close };
 }
 
-// ヘルプモーダル
+// モーダル初期化
 setupModal('helpButton', 'helpModal', 'helpContent', 'helpOverlay', 'modalWrapper', ['closeHelpBtn', 'closeHelpBtnBottom']);
-
-// 認証モーダル（ログイン/登録）
-// ※ ログインボタンと登録ボタンの2箇所から開くため、戻り値の open 関数を使う
 const authModalCtrl = setupModal(null, 'authModal', 'authContent', 'authOverlay', 'authModalWrapper', ['closeAuthBtn']);
+const historyModalCtrl = setupModal(null, 'historyModal', 'historyContent', 'historyOverlay', 'historyModalWrapper', ['closeHistoryBtn', 'closeHistoryBtnBottom']);
 
-// --- 認証ロジック (LocalStorage) ---
+// --- ドロップダウンメニュー制御 ---
+const userMenuBtn = document.getElementById('userMenuBtn');
+const userDropdown = document.getElementById('userDropdown');
+
+if (userMenuBtn && userDropdown) {
+    userMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userDropdown.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+            userDropdown.classList.add('hidden');
+        }
+    });
+}
+
+// --- 認証 & 履歴ロジック ---
 const Auth = {
-    KEY: 'career_app_users',      // ユーザー情報の保存キー
-    SESSION_KEY: 'career_app_session', // ログイン状態の保存キー
-    
-    // ユーザー一覧を取得
+    KEY: 'career_app_users',      
+    SESSION_KEY: 'career_app_session',
+    HISTORY_KEY_PREFIX: 'career_app_history_',
+
     getUsers() {
         return JSON.parse(localStorage.getItem(this.KEY) || '[]');
     },
     
-    // 新規登録
     register(name, email, password) {
         const users = this.getUsers();
-        // 重複チェック
         if (users.find(u => u.email === email)) {
             alert('このメールアドレスは既に登録されています。');
             return false;
         }
-        
-        // ユーザー追加
-        const newUser = { id: Date.now(), name, email, password };
+        const newUser = { id: Date.now().toString(), name, email, password };
         users.push(newUser);
         localStorage.setItem(this.KEY, JSON.stringify(users));
-        
-        // 自動ログイン
         this.login(email, password);
         return true;
     },
     
-    // ログイン
     login(email, password) {
         const users = this.getUsers();
         const user = users.find(u => u.email === email && u.password === password);
-        
         if (user) {
-            // セッションに保存 (パスワードは除外するフリ)
             const sessionUser = { ...user };
-            // 実際はDBではないのでここにあるpasswordは消しても消さなくてもlocalStorageには残るが、
-            // セッション管理としては消しておくのがマナー
             delete sessionUser.password; 
             localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionUser));
-            
             this.updateUI();
             return true;
         } else {
@@ -97,53 +101,120 @@ const Auth = {
         }
     },
     
-    // ログアウト
     logout() {
         localStorage.removeItem(this.SESSION_KEY);
+        if (userDropdown) userDropdown.classList.add('hidden'); 
         this.updateUI();
         alert('ログアウトしました。');
     },
     
-    // 現在のユーザーを取得
     getCurrentUser() {
         return JSON.parse(localStorage.getItem(this.SESSION_KEY));
     },
     
-    // UI更新 (ヘッダーの切り替え)
+    // 履歴取得
+    getHistory() {
+        const user = this.getCurrentUser();
+        if (!user) return [];
+        const key = this.HISTORY_KEY_PREFIX + user.id;
+        return JSON.parse(localStorage.getItem(key) || '[]');
+    },
+
     updateUI() {
         const user = this.getCurrentUser();
         const authButtons = document.getElementById('authButtons');
         const userMenu = document.getElementById('userMenu');
         const userNameDisplay = document.getElementById('userNameDisplay');
         const userAvatar = document.getElementById('userAvatar');
+        const userEmailDisplay = document.getElementById('userEmailDisplay');
         
         if (user) {
             authButtons.classList.add('hidden');
             userMenu.classList.remove('hidden');
-            userMenu.classList.add('flex');
-            userNameDisplay.textContent = user.name;
-            userAvatar.textContent = user.name.charAt(0).toUpperCase(); // 頭文字
+            if (userNameDisplay) userNameDisplay.textContent = user.name;
+            if (userEmailDisplay) userEmailDisplay.textContent = user.email;
+            if (userAvatar) userAvatar.textContent = user.name.charAt(0).toUpperCase();
         } else {
             authButtons.classList.remove('hidden');
             userMenu.classList.add('hidden');
-            userMenu.classList.remove('flex');
         }
     }
 };
 
+// --- 履歴表示処理 ---
+const historyBtn = document.getElementById('historyBtn');
+const historyList = document.getElementById('historyList');
+const emptyHistory = document.getElementById('emptyHistory');
+
+if (historyBtn) {
+    historyBtn.addEventListener('click', () => {
+        if (userDropdown) userDropdown.classList.add('hidden');
+        renderHistory();
+        historyModalCtrl.open();
+    });
+}
+
+function renderHistory() {
+    const histories = Auth.getHistory();
+    if (!historyList) return;
+    
+    historyList.innerHTML = '';
+    
+    if (histories.length === 0) {
+        emptyHistory.classList.remove('hidden');
+    } else {
+        emptyHistory.classList.add('hidden');
+        // 日付降順
+        histories.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        histories.forEach(h => {
+            const el = document.createElement('div');
+            el.className = 'bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4 hover:border-blue-200 transition-colors';
+            
+            let iconHtml = '';
+            let typeLabel = '';
+            let typeColor = '';
+
+            if (h.type === 'sindan') {
+                typeLabel = '適性診断';
+                typeColor = 'text-blue-600 bg-blue-50';
+                iconHtml = '<i data-lucide="file-text" class="w-6 h-6"></i>';
+            } else {
+                typeLabel = '服装分析';
+                typeColor = 'text-indigo-600 bg-indigo-50';
+                iconHtml = '<i data-lucide="camera" class="w-6 h-6"></i>';
+            }
+
+            el.innerHTML = `
+                <div class="flex-shrink-0 w-12 h-12 rounded-xl ${typeColor} flex items-center justify-center">
+                    ${iconHtml}
+                </div>
+                <div class="flex-grow">
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-xs font-bold ${typeColor.replace('bg-', 'text-').replace('50', '600')} bg-opacity-10 px-2 py-0.5 rounded-full">${typeLabel}</span>
+                        <span class="text-xs text-slate-400 font-mono">${h.date}</span>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-lg mb-1">${h.title}</h4>
+                    <p class="text-sm text-slate-500 line-clamp-2">${h.summary}</p>
+                </div>
+            `;
+            historyList.appendChild(el);
+        });
+        lucide.createIcons();
+    }
+}
+
 // --- イベントリスナー設定 ---
+const loginBtn = document.getElementById('loginBtn');
+if (loginBtn) {
+    loginBtn.addEventListener('click', () => { toggleAuthMode('login'); authModalCtrl.open(); });
+}
 
-// ヘッダーのボタンからモーダルを開く
-document.getElementById('loginBtn').addEventListener('click', () => {
-    toggleAuthMode('login');
-    authModalCtrl.open();
-});
-document.getElementById('registerBtn').addEventListener('click', () => {
-    toggleAuthMode('register');
-    authModalCtrl.open();
-});
+const registerBtn = document.getElementById('registerBtn');
+if (registerBtn) {
+    registerBtn.addEventListener('click', () => { toggleAuthMode('register'); authModalCtrl.open(); });
+}
 
-// モーダル内の切り替えリンク
 const loginForm = document.getElementById('loginForm');
 const registerForm = document.getElementById('registerForm');
 
@@ -160,60 +231,42 @@ function toggleAuthMode(mode) {
 document.getElementById('showRegisterLink').addEventListener('click', () => toggleAuthMode('register'));
 document.getElementById('showLoginLink').addEventListener('click', () => toggleAuthMode('login'));
 
-// 登録実行
 document.getElementById('doRegisterBtn').addEventListener('click', () => {
     const name = document.getElementById('regName').value;
     const email = document.getElementById('regEmail').value;
     const pass = document.getElementById('regPassword').value;
-    
     if(name && email && pass) {
         if(Auth.register(name, email, pass)) {
             authModalCtrl.close();
-            alert('登録が完了しました！ようこそ ' + name + ' さん');
-            // 入力欄クリア
             document.getElementById('regName').value = '';
             document.getElementById('regEmail').value = '';
             document.getElementById('regPassword').value = '';
         }
-    } else {
-        alert('すべての項目を入力してください。');
-    }
+    } else { alert('すべての項目を入力してください。'); }
 });
 
-// ログイン実行
 document.getElementById('doLoginBtn').addEventListener('click', () => {
     const email = document.getElementById('loginEmail').value;
     const pass = document.getElementById('loginPassword').value;
-    
     if(email && pass) {
         if(Auth.login(email, pass)) {
             authModalCtrl.close();
-            // 入力欄クリア
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
         }
-    } else {
-        alert('すべての項目を入力してください。');
-    }
+    } else { alert('すべての項目を入力してください。'); }
 });
 
-// ログアウト実行
-document.getElementById('logoutBtn').addEventListener('click', () => {
-    Auth.logout();
-});
+document.getElementById('logoutBtn').addEventListener('click', () => { Auth.logout(); });
 
-// 初期化時
+// 初期化実行
 Auth.updateUI();
 
-// ESCキーで閉じる
+// ESCキーでモーダルを閉じる
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        if (!document.getElementById('helpModal').classList.contains('hidden')) {
-            // help close logic handled by setupModal internals or simplistic approach:
-            document.getElementById('closeHelpBtn').click();
-        }
-        if (!document.getElementById('authModal').classList.contains('hidden')) {
-            authModalCtrl.close();
-        }
+        if (!document.getElementById('helpModal').classList.contains('hidden')) document.getElementById('closeHelpBtn').click();
+        if (!document.getElementById('authModal').classList.contains('hidden')) authModalCtrl.close();
+        if (!document.getElementById('historyModal').classList.contains('hidden')) historyModalCtrl.close();
     }
 });
