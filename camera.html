@@ -9,7 +9,121 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <link rel="stylesheet" href="css/camera.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            padding-top: 4rem;
+            /* 64px */
+            background-color: #f8fafc;
+            /* slate-50 */
+            color: #0f172a;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* 背景の微細なグリッドパターン */
+        .bg-grid-pattern {
+            background-image: linear-gradient(to right, #e2e8f0 1px, transparent 1px),
+                linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+            -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+            opacity: 0.4;
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+        }
+
+        /* ドラッグ&ドロップ領域のスタイル */
+        .drag-over {
+            border-color: #4f46e5 !important;
+            background-color: #eef2ff !important;
+        }
+
+        /* ローディングスピナー */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #4f46e5;
+            animation: spin 1s ease infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* カメラコンテナとカウントダウン */
+        #cameraContainer {
+            position: relative;
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+
+        #countdownOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 8rem;
+            /* 128px */
+            font-weight: 800;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
+
+        #countdownOverlay.visible {
+            opacity: 1;
+        }
+
+        /* 選択ボタンの状態 */
+        .setting-btn.selected {
+            background-color: #eef2ff;
+            /* indigo-50 */
+            border-color: #6366f1;
+            /* indigo-500 */
+            color: #4338ca;
+            /* indigo-700 */
+            font-weight: 700;
+        }
+
+        /* 分析結果のリストスタイル */
+        #analysisResult ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        #analysisResult li {
+            margin-bottom: 0.75rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        #analysisResult li::before {
+            content: '•';
+            color: #4f46e5;
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+    </style>
 </head>
 
 <body class="min-h-screen flex flex-col">
@@ -233,207 +347,478 @@
         </div>
     </div>
 
-    <a href="home.html"
-        class="flex items-center text-sm font-bold text-slate-500 hover:text-slate-900 px-2 transition-colors">
-        <svg class="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-        ホームに戻る
-    </a>
-    </div>
-    </div>
-    </div>
-    </nav>
-
-    <div class="flex-grow w-full max-w-4xl mx-auto p-4 sm:p-6 py-12">
-        <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-200 p-8 md:p-12">
-            <div class="text-center mb-10">
-                <div
-                    class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 mb-6">
-                    <i data-lucide="camera" class="w-8 h-8"></i>
-                </div>
-                <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">服装分析</h1>
-                <p class="text-slate-500">面接官の視点であなたの身だしなみをチェック。<br>改善ポイントをAIがアドバイスします。</p>
-            </div>
-
-            <!-- STEP 1: 場面選択 -->
-            <div class="mb-8">
-                <label class="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span
-                        class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs">1</span>
-                    分析したい場面を選択</label>
-                <div class="relative">
-                    <select id="sceneSelect"
-                        class="w-full p-4 pl-5 pr-10 border border-slate-200 rounded-xl bg-white text-lg focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer hover:border-indigo-300 transition-colors">
-                        <option value="" disabled selected>-- 場面を選択してください --</option>
-                        <option value="面接（一次・二次）">面接（一次・二次）</option>
-                        <option value="最終面接">最終面接</option>
-                        <option value="インターンシップ参加">インターンシップ参加</option>
-                        <option value="会社説明会">会社説明会</option>
-                        <option value="OB・OG訪問">OB・OG訪問</option>
-                        <option value="証明写真撮影">証明写真撮影</option>
-                    </select>
-                    <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-500"><i
-                            data-lucide="chevron-down" class="w-5 h-5"></i></div>
-                </div>
-            </div>
-
-            <!-- STEP 2: 服装選択 (新規追加) -->
-            <div class="mb-8">
-                <label class="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span
-                        class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs">2</span>
-                    分析したい服装を選択</label>
-                <div class="relative">
-                    <select id="attireSelect"
-                        class="w-full p-4 pl-5 pr-10 border border-slate-200 rounded-xl bg-white text-lg focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer hover:border-indigo-300 transition-colors">
-                        <option value="" disabled selected>-- 服装の種類を選択してください --</option>
-                        <option value="リクルートスーツ">リクルートスーツ</option>
-                        <option value="ビジネススーツ（一般）">ビジネススーツ（一般）</option>
-                        <option value="ビジネスカジュアル（オフィスカジュアル）">ビジネスカジュアル（オフィスカジュアル）</option>
-                        <option value="私服（きれいめ）">私服（きれいめ）</option>
-                        <option value="私服（カジュアル）">私服（カジュアル）</option>
-                    </select>
-                    <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-500"><i
-                            data-lucide="chevron-down" class="w-5 h-5"></i></div>
-                </div>
-            </div>
-
-            <!-- STEP 3: 範囲選択 (番号変更) -->
-            <div class="mb-8">
-                <label class="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span
-                        class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs">3</span>
-                    分析する範囲を選択</label>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <button
-                        class="area-btn setting-btn w-full p-5 rounded-xl border-2 border-slate-100 text-slate-600 transition-all flex flex-col items-center justify-center gap-2 hover:border-indigo-400 hover:bg-indigo-50"
-                        data-area="全体像">
-                        <i data-lucide="user-round" class="w-6 h-6 mb-1"></i><span class="font-bold">全体像（全身）</span>
-                    </button>
-                    <button
-                        class="area-btn setting-btn w-full p-5 rounded-xl border-2 border-slate-100 text-slate-600 transition-all flex flex-col items-center justify-center gap-2 hover:border-indigo-400 hover:bg-indigo-50"
-                        data-area="胸から上">
-                        <i data-lucide="user" class="w-6 h-6 mb-1"></i><span class="font-bold">胸から上</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- STEP 4: 写真準備 (番号変更) -->
-            <div class="mb-8">
-                <label class="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span
-                        class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs">4</span>
-                    写真を準備</label>
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <button id="btnUseCamera"
-                        class="w-full p-4 font-bold rounded-xl border-2 border-indigo-500 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2"><i
-                            data-lucide="camera" class="w-5 h-5"></i> カメラ</button>
-                    <button id="btnUseUpload"
-                        class="w-full p-4 font-bold rounded-xl border-2 border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors flex items-center justify-center gap-2"><i
-                            data-lucide="upload" class="w-5 h-5"></i> アップロード</button>
-                </div>
-
-                <div id="cameraUi" class="hidden">
-                    <div id="cameraContainer"
-                        class="relative w-full rounded-2xl mb-4 border border-slate-200 overflow-hidden bg-black aspect-[3/4] sm:aspect-[4/3]">
-                        <video id="cameraStream" autoplay playsinline
-                            class="absolute inset-0 w-full h-full object-cover"></video>
-                        <div id="countdownOverlay" class=""><span id="countdownText">5</span></div>
-                    </div>
-                    <div class="mb-6 flex justify-center items-center gap-4">
-                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Timer</span>
-                        <div class="flex gap-2">
-                            <button
-                                class="timer-btn setting-btn px-4 py-2 rounded-lg border border-slate-200 text-sm font-bold text-slate-500 hover:bg-slate-50 selected"
-                                data-timer="0">OFF</button>
-                            <button
-                                class="timer-btn setting-btn px-4 py-2 rounded-lg border border-slate-200 text-sm font-bold text-slate-500 hover:bg-slate-50"
-                                data-timer="5">5s</button>
-                            <button
-                                class="timer-btn setting-btn px-4 py-2 rounded-lg border border-slate-200 text-sm font-bold text-slate-500 hover:bg-slate-50"
-                                data-timer="10">10s</button>
-                        </div>
-                    </div>
-                    <button id="captureButton"
-                        class="w-full p-4 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-colors shadow-lg shadow-red-200 active:scale-[0.98] flex items-center justify-center gap-2"><i
-                            data-lucide="aperture" class="w-6 h-6"></i> 撮影する</button>
-                    <canvas id="captureCanvas" class="hidden"></canvas>
-                </div>
-
-                <div id="uploadUi" class="hidden">
-                    <div id="dropZone"
-                        class="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100 hover:border-indigo-400 transition-all group">
-                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                            <div
-                                class="p-4 bg-white rounded-full shadow-sm mb-4 group-hover:scale-110 transition-transform">
-                                <i data-lucide="cloud-upload" class="w-8 h-8 text-indigo-500"></i>
-                            </div>
-                            <p class="mb-2 text-sm text-slate-600"><span class="font-bold text-indigo-600">クリック</span>
-                                またはドラッグ＆ドロップ</p>
-                            <p class="text-xs text-slate-400">PNG, JPG, WEBP (5MBまで)</p>
-                        </div>
-                    </div>
-                    <input id="imageInput" type="file" class="sr-only" accept="image/png, image/jpeg, image/webp" />
-                </div>
-            </div>
-
-            <div id="imagePreviewContainer" class="hidden mb-8 text-center">
-                <div class="relative inline-block">
-                    <img id="imagePreview" src="" alt="プレビュー画像"
-                        class="max-w-md w-full max-h-96 object-contain rounded-2xl shadow-lg border border-slate-200" />
-                    <button id="retakeButton"
-                        class="absolute bottom-4 right-4 bg-white/90 backdrop-blur text-slate-700 font-bold py-2 px-4 rounded-lg hover:bg-white shadow-md transition-colors text-sm flex items-center gap-2"><i
-                            data-lucide="rotate-ccw" class="w-4 h-4"></i> 取り直す</button>
-                </div>
-            </div>
-
-            <button id="analyzeButton" disabled
-                class="w-full flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none text-lg active:scale-[0.98]">
-                <i data-lucide="sparkles" class="w-6 h-6 mr-2"></i> <span>分析スタート</span>
-            </button>
-
-            <div id="guideMessage"
-                class="mt-4 text-center text-sm font-bold text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100 hidden">
-            </div>
-            <div id="errorMessage"
-                class="hidden mt-4 text-center text-sm font-bold text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
-                <i data-lucide="alert-circle" class="w-4 h-4 inline mr-1"></i> <span id="errorText"></span>
-            </div>
-
-            <div id="loadingSpinner" class="hidden text-center my-12">
-                <div class="spinner mx-auto mb-4"></div>
-                <h3 class="text-xl font-bold text-slate-800">分析中...</h3>
-                <p class="text-slate-500 mt-2">服装、表情、清潔感をチェックしています</p>
-            </div>
-
-            <div id="analysisResultContainer" class="hidden mt-12 pt-12 border-t border-slate-200">
-                <h2 class="text-3xl font-bold text-slate-900 mb-8 text-center">分析結果</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    <div
-                        class="flex flex-col items-center justify-center bg-indigo-50 p-8 rounded-[2rem] border border-indigo-100">
-                        <p class="text-lg font-bold text-indigo-900 mb-2">総合評価</p>
-                        <div class="flex items-baseline"><span id="overallScore"
-                                class="text-7xl font-black text-indigo-600 tracking-tighter">0</span><span
-                                class="text-2xl text-indigo-400 font-bold ml-2">/100</span></div>
-                        <div id="scoreBenchmark"
-                            class="text-sm font-bold mt-4 px-4 py-1.5 rounded-full bg-white text-indigo-600 shadow-sm">
-                        </div>
-                        <p id="sceneForScore" class="text-xs text-indigo-400 mt-2 font-medium"></p>
-                    </div>
-                    <div
-                        class="bg-white p-6 rounded-[2rem] flex items-center justify-center border border-slate-200 shadow-sm">
-                        <canvas id="attireRadarChart"></canvas>
-                    </div>
-                </div>
-                <div id="analysisResult" class="space-y-6"></div>
-            </div>
-        </div>
-    </div>
-
     <footer class="w-full bg-white border-t border-slate-200 py-10 mt-auto">
         <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400">&copy; 2025 Career Support AI. All rights
             reserved.</div>
     </footer>
 
-    <script src="js/camera.js"></script>
+    <script>
+        // --- 要素取得 ---
+        const sceneSelect = document.getElementById('sceneSelect');
+        const attireSelect = document.getElementById('attireSelect'); // 新規追加
+        const btnUseCamera = document.getElementById('btnUseCamera');
+        const btnUseUpload = document.getElementById('btnUseUpload');
+        const cameraUi = document.getElementById('cameraUi');
+        const uploadUi = document.getElementById('uploadUi');
+        const videoEl = document.getElementById('cameraStream');
+        const captureCanvas = document.getElementById('captureCanvas');
+        const captureButton = document.getElementById('captureButton');
+        const dropZone = document.getElementById('dropZone');
+        const imageInput = document.getElementById('imageInput');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const analysisResultContainer = document.getElementById('analysisResultContainer');
+        const analysisResult = document.getElementById('analysisResult');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const guideMessageEl = document.getElementById('guideMessage');
+        const overallScoreEl = document.getElementById('overallScore');
+        const sceneForScoreEl = document.getElementById('sceneForScore');
+        const timerButtons = document.querySelectorAll('.timer-btn');
+        const areaButtons = document.querySelectorAll('.area-btn');
+        const countdownOverlay = document.getElementById('countdownOverlay');
+        const countdownText = document.getElementById('countdownText');
+        const retakeButton = document.getElementById('retakeButton');
+        const scoreBenchmarkEl = document.getElementById('scoreBenchmark');
+
+        // --- 状態管理 ---
+        let selectedScene = "";
+        let selectedAttire = ""; // 新規追加
+        let selectedArea = "";
+        let base64Image = null;
+        let mimeType = null;
+        let cameraStream = null;
+        let myRadarChart;
+        let selectedTimer = 0;
+        let countdownInterval = null;
+        let lastInputMethod = 'upload';
+
+        // --- JSON スキーマ定義 ---
+        const responseSchema = {
+            type: "OBJECT",
+            properties: {
+                "scene": { "type": "STRING" },
+                "evaluation": {
+                    type: "ARRAY",
+                    items: {
+                        type: "OBJECT",
+                        properties: {
+                            "item": { "type": "STRING" },
+                            "score": { "type": "NUMBER" },
+                            "comment": { "type": "STRING" }
+                        }
+                    }
+                },
+                "overallScore": { "type": "NUMBER" },
+                "overallComment": {
+                    type: "OBJECT",
+                    properties: {
+                        "goodPoints": { "type": "STRING" },
+                        "suggestions": { "type": "STRING" },
+                        "summary": { "type": "STRING" }
+                    }
+                }
+            },
+            required: ["scene", "evaluation", "overallScore", "overallComment"]
+        };
+
+        // --- イベントリスナー ---
+        sceneSelect.addEventListener('change', (e) => {
+            selectedScene = e.target.value;
+            checkAnalyzeButtonState();
+        });
+
+        // 服装選択のイベントリスナー（新規追加）
+        attireSelect.addEventListener('change', (e) => {
+            selectedAttire = e.target.value;
+            checkAnalyzeButtonState();
+        });
+
+        // エリア選択
+        areaButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                areaButtons.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedArea = btn.dataset.area;
+                checkAnalyzeButtonState();
+            });
+        });
+
+        // タイマー選択
+        timerButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                timerButtons.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedTimer = parseInt(btn.dataset.timer, 10);
+            });
+        });
+
+        btnUseCamera.addEventListener('click', () => { selectInputMethod('camera'); startCamera(); });
+        btnUseUpload.addEventListener('click', () => { selectInputMethod('upload'); stopCamera(); });
+        captureButton.addEventListener('click', handleCaptureClick);
+        retakeButton.addEventListener('click', handleRetake);
+
+        // --- アップロード処理 ---
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }, false);
+        });
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-over'), false);
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
+        });
+        dropZone.addEventListener('drop', (e) => handleFile(e.dataTransfer.files[0]), false);
+
+        // Explicit click handler for dropZone
+        dropZone.addEventListener('click', () => {
+            imageInput.click();
+        });
+
+        imageInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+        function handleFile(file) {
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) { showError("ファイルサイズが5MBを超えています。"); return; }
+            if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) { showError("PNG, JPG, WEBP 形式の画像を選択してください。"); return; }
+            mimeType = file.type;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                imagePreviewContainer.classList.remove('hidden');
+                base64Image = e.target.result.split(',')[1];
+                checkAnalyzeButtonState();
+                hideError();
+                uploadUi.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- カメラ処理 ---
+        function selectInputMethod(method) {
+            lastInputMethod = method;
+            if (method === 'camera') {
+                cameraUi.classList.remove('hidden');
+                uploadUi.classList.add('hidden');
+                btnUseCamera.classList.add('bg-indigo-100', 'border-indigo-500', 'text-indigo-700');
+                btnUseUpload.classList.remove('bg-indigo-100', 'border-indigo-500', 'text-indigo-700');
+            } else {
+                cameraUi.classList.add('hidden');
+                uploadUi.classList.remove('hidden');
+                btnUseUpload.classList.add('bg-indigo-100', 'border-indigo-500', 'text-indigo-700');
+                btnUseCamera.classList.remove('bg-indigo-100', 'border-indigo-500', 'text-indigo-700');
+            }
+        }
+
+        async function startCamera() {
+            try {
+                if (cameraStream) cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                videoEl.srcObject = cameraStream;
+                hideError();
+            } catch (err) {
+                console.error("Camera error:", err);
+                showError("カメラへのアクセスが許可されませんでした。");
+                selectInputMethod('upload');
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+                videoEl.srcObject = null;
+            }
+        }
+
+        function handleCaptureClick() {
+            if (countdownInterval) return;
+            if (selectedTimer > 0) startCountdown(selectedTimer);
+            else takePicture();
+        }
+
+        function startCountdown(seconds) {
+            captureButton.disabled = true;
+            captureButton.textContent = `${seconds}秒後に撮影...`;
+            let count = seconds;
+            countdownText.textContent = count;
+            countdownOverlay.classList.add('visible');
+
+            countdownInterval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownText.textContent = count;
+                } else {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                    countdownOverlay.classList.remove('visible');
+                    takePicture();
+                    captureButton.disabled = false;
+                    captureButton.innerHTML = '<i data-lucide="aperture" class="w-6 h-6"></i> 撮影する';
+                    lucide.createIcons();
+                }
+            }, 1000);
+        }
+
+        function takePicture() {
+            const context = captureCanvas.getContext('2d');
+            captureCanvas.width = videoEl.videoWidth;
+            captureCanvas.height = videoEl.videoHeight;
+            context.drawImage(videoEl, 0, 0, videoEl.videoWidth, videoEl.videoHeight);
+
+            const dataUrl = captureCanvas.toDataURL('image/jpeg');
+            mimeType = 'image/jpeg';
+            base64Image = dataUrl.split(',')[1];
+
+            imagePreview.src = dataUrl;
+            imagePreviewContainer.classList.remove('hidden');
+            checkAnalyzeButtonState();
+            stopCamera();
+            cameraUi.classList.add('hidden');
+        }
+
+        function handleRetake() {
+            base64Image = null;
+            mimeType = null;
+            imagePreview.src = "";
+            imageInput.value = null;
+            imagePreviewContainer.classList.add('hidden');
+            analyzeButton.disabled = true;
+            hideError();
+            analysisResultContainer.classList.add('hidden');
+
+            checkAnalyzeButtonState();
+            selectInputMethod(lastInputMethod);
+            if (lastInputMethod === 'camera') startCamera();
+        }
+
+        // --- 分析ボタンの制御 ---
+        function checkAnalyzeButtonState() {
+            let msg = "";
+            if (!selectedScene) msg = "1. 分析したい場面を選択してください";
+            else if (!selectedAttire) msg = "2. 分析したい服装を選択してください"; // 新規条件
+            else if (!selectedArea) msg = "3. 分析する範囲を選択してください";
+            else if (!base64Image) msg = "4. 写真を準備してください";
+
+            if (msg) {
+                analyzeButton.disabled = true;
+                analyzeButton.classList.add('opacity-50', 'cursor-not-allowed', 'bg-gray-400');
+                analyzeButton.classList.remove('bg-indigo-600', 'shadow-lg');
+                guideMessageEl.textContent = msg;
+                guideMessageEl.classList.remove('hidden');
+            } else {
+                analyzeButton.disabled = false;
+                analyzeButton.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-gray-400');
+                analyzeButton.classList.add('bg-indigo-600', 'shadow-lg');
+                guideMessageEl.textContent = "";
+                guideMessageEl.classList.add('hidden');
+            }
+        }
+        analyzeButton.addEventListener('click', callGeminiApi);
+
+        // --- Gemini API 呼び出し (Mock) ---
+        async function callGeminiApi() {
+            loadingSpinner.classList.remove('hidden');
+            analyzeButton.disabled = true;
+            analyzeButton.querySelector('span').textContent = '分析中です...';
+            hideError();
+            analysisResultContainer.classList.add('hidden');
+            retakeButton.disabled = true;
+
+            try {
+                const response = await fetch('http://localhost:3000/api/camera', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imageBase64: base64Image,
+                        scene: selectedScene,
+                        attire: selectedAttire // 新規追加
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    if (response.status === 429) {
+                        throw new Error(errorData.message || "アクセス集中等のため一時的に利用できません。時間をおいて再度お試しください。");
+                    }
+                    throw new Error('API request failed');
+                }
+                const data = await response.json();
+
+                // ★ 履歴保存処理を追加 ★
+                saveHistory(data);
+                displayResult(data);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message || "分析中にエラーが発生しました。時間を置いて再度お試しください。");
+            } finally {
+                loadingSpinner.classList.add('hidden');
+                analyzeButton.disabled = false;
+                analyzeButton.querySelector('span').textContent = '分析スタート';
+                retakeButton.disabled = false;
+                stopCamera();
+            }
+        }
+
+        // ★ 履歴保存関数 ★
+        function saveHistory(data) {
+            try {
+                const SESSION_KEY = 'career_app_session';
+                const HISTORY_KEY_PREFIX = 'career_app_history_';
+
+                const user = JSON.parse(localStorage.getItem(SESSION_KEY));
+                if (!user) return; // ログインしていなければ保存しない
+
+                const key = HISTORY_KEY_PREFIX + user.id;
+                const histories = JSON.parse(localStorage.getItem(key) || '[]');
+
+                const now = new Date();
+                const dateStr = now.getFullYear() + '/' + (now.getMonth() + 1) + '/' + now.getDate() + ' ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+
+                const newHistory = {
+                    id: Date.now(),
+                    type: 'camera',
+                    date: dateStr,
+                    title: `総合評価: ${data.overallScore}点`,
+                    summary: `場面: ${selectedScene} / 服装: ${selectedAttire}`,
+                    detail: data
+                };
+
+                histories.push(newHistory);
+                localStorage.setItem(key, JSON.stringify(histories));
+
+            } catch (e) {
+                console.error("Save history failed", e);
+            }
+        }
+
+        // --- 結果表示 ---
+        function displayResult(data) {
+            analysisResultContainer.classList.remove('hidden');
+
+            const score = data.overallScore || 0;
+            overallScoreEl.textContent = score;
+            sceneForScoreEl.textContent = `（${selectedScene} / ${selectedAttire} での評価）`;
+
+            scoreBenchmarkEl.classList.remove('bg-green-100', 'text-green-800', 'bg-yellow-100', 'text-yellow-800', 'bg-red-100', 'text-red-800');
+            if (score >= 80) {
+                scoreBenchmarkEl.textContent = '合格ライン (Excellent)';
+                scoreBenchmarkEl.classList.add('bg-green-100', 'text-green-800');
+            } else if (score >= 60) {
+                scoreBenchmarkEl.textContent = '要改善 (Good)';
+                scoreBenchmarkEl.classList.add('bg-yellow-100', 'text-yellow-800');
+            } else {
+                scoreBenchmarkEl.textContent = '大幅改善が必要 (Bad)';
+                scoreBenchmarkEl.classList.add('bg-red-100', 'text-red-800');
+            }
+
+            const ctx = document.getElementById('attireRadarChart').getContext('2d');
+            const labels = data.evaluation.map(item => item.item);
+            const scores = data.evaluation.map(item => item.score);
+
+            if (myRadarChart) {
+                myRadarChart.destroy();
+            }
+            myRadarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '評価 (5点満点)',
+                        data: scores,
+                        backgroundColor: 'rgba(79, 70, 229, 0.2)', // indigo-600
+                        borderColor: '#4f46e5',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#4f46e5',
+                        pointBorderColor: '#fff'
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            angleLines: { display: true, color: '#e2e8f0' },
+                            grid: { color: '#e2e8f0' },
+                            suggestedMin: 0,
+                            suggestedMax: 5,
+                            ticks: { stepSize: 1, display: false },
+                            pointLabels: {
+                                font: { size: 12, family: 'Noto Sans JP', weight: 'bold' },
+                                color: '#475569'
+                            }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            const comment = data.overallComment;
+            analysisResult.innerHTML = `
+                <div class="bg-green-50 border border-green-200 rounded-2xl p-6">
+                    <h3 class="text-green-800 flex items-center gap-2 font-bold mb-2">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i> 良い点 (Good Points)
+                    </h3>
+                    <p class="text-green-700 leading-relaxed">${comment.goodPoints.replace(/\n/g, '<br>')}</p>
+                </div>
+                
+                <div class="bg-yellow-50 border border-yellow-200 rounded-2xl p-6">
+                    <h3 class="text-yellow-800 flex items-center gap-2 font-bold mb-2">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i> 改善提案 (Suggestions)
+                    </h3>
+                    <p class="text-yellow-700 leading-relaxed">${comment.suggestions.replace(/\n/g, '<br>')}</p>
+                </div>
+                
+                <div class="bg-white border border-slate-200 rounded-2xl p-6">
+                    <h3 class="text-slate-800 flex items-center gap-2 font-bold mb-2">
+                        <i data-lucide="lightbulb" class="w-5 h-5"></i> 総評 (Summary)
+                    </h3>
+                    <p class="text-slate-600 leading-relaxed">${comment.summary.replace(/\n/g, '<br>')}</p>
+                </div>
+                
+                <div class="mt-8">
+                    <h3 class="text-slate-800 font-bold mb-4 flex items-center gap-2"><i data-lucide="list" class="w-5 h-5"></i> 項目別詳細</h3>
+                    <div class="space-y-3">
+                        ${data.evaluation.map(item => `
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-bold text-slate-700">${item.item}</span>
+                                    <span class="font-bold text-indigo-600">${item.score}/5</span>
+                                </div>
+                                <p class="text-sm text-slate-600">${item.comment}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        // --- UIヘルパー ---
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+
+        // --- APIリトライ ---
+        async function fetchWithBackoff(url, options, maxRetries = 3, baseDelay = 1000) {
+            // Mock implementation doesn't use this, but kept for compatibility if needed later.
+            return;
+        }
+
+        // --- 初期化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            selectInputMethod('upload');
+            lucide.createIcons();
+            // タイマーのデフォルト選択
+            timerButtons[0].classList.add('selected');
+            checkAnalyzeButtonState();
+        });
+    </script>
 </body>
 
 </html>
