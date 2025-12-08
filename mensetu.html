@@ -1,0 +1,397 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模擬面接 - Job Compass</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="css/mensetu.css">
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <div class="bg-grid-pattern"></div>
+
+    <nav
+        class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 h-16 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+            <div class="flex justify-between items-center h-full">
+                <a href="home.html" class="flex items-center gap-2 group">
+                    <svg class="h-8 w-8 text-blue-600 transition-transform group-hover:scale-110"
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" />
+                        <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span class="text-xl font-bold tracking-tight text-slate-900">Job Compass</span>
+                </a>
+                <div class="hidden md:flex items-center gap-1">
+                    <a href="sindan.html"
+                        class="px-4 py-2 rounded-full text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all">適正診断</a>
+                    <a href="camera.html"
+                        class="px-4 py-2 rounded-full text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all">服装分析</a>
+                    <a href="mensetu.html"
+                        class="px-4 py-2 rounded-full text-sm font-medium text-slate-900 bg-slate-100 transition-all">模擬面接</a>
+                </div>
+                <div class="flex items-center gap-3">
+                    <a href="home.html"
+                        class="flex items-center text-sm font-bold text-slate-500 hover:text-slate-900 px-2 transition-colors">
+                        <svg class="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        ホームに戻る
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex-grow w-full max-w-4xl mx-auto p-4 sm:p-6 py-12 flex flex-col h-[calc(100vh-4rem)]">
+
+        <!-- 設定画面 -->
+        <div id="setupScreen" class="bg-white rounded-[2.5rem] shadow-xl border border-slate-200 p-8 md:p-12 my-auto">
+            <div class="text-center mb-10">
+                <div
+                    class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 text-teal-600 mb-6">
+                    <i data-lucide="mic" class="w-8 h-8"></i>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">模擬面接</h1>
+                <p class="text-slate-500">本番さながらの緊張感で、回答力を鍛えましょう。<br>面接官のタイプを選んでスタートしてください。</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <button
+                    class="interviewer-btn group relative p-6 rounded-2xl border-2 border-slate-200 hover:border-teal-500 hover:bg-teal-50 transition-all text-left"
+                    data-type="gentle">
+                    <div class="flex items-center gap-4 mb-2">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-2xl">👩‍💼
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg">優しい面接官</h3>
+                            <p class="text-xs text-slate-500">初めての方におすすめ</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 mt-2">あなたの良さを引き出すように、穏やかな雰囲気で質問します。</p>
+                    <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 text-teal-600"><i
+                            data-lucide="check-circle" class="w-6 h-6"></i></div>
+                </button>
+
+                <button
+                    class="interviewer-btn group relative p-6 rounded-2xl border-2 border-slate-200 hover:border-teal-500 hover:bg-teal-50 transition-all text-left"
+                    data-type="strict">
+                    <div class="flex items-center gap-4 mb-2">
+                        <div class="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-2xl">👨‍⚖️
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg">厳しい面接官</h3>
+                            <p class="text-xs text-slate-500">圧迫面接対策に</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 mt-2">論理的な矛盾を鋭く指摘し、深掘りした質問を行います。</p>
+                    <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 text-teal-600"><i
+                            data-lucide="check-circle" class="w-6 h-6"></i></div>
+                </button>
+            </div>
+
+            <button id="startInterviewBtn" disabled
+                class="w-full bg-slate-300 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-none cursor-not-allowed text-lg flex items-center justify-center gap-2">
+                <span>面接を開始する</span>
+                <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- 面接画面 -->
+        <div id="interviewScreen"
+            class="hidden flex-col h-full bg-white rounded-[2rem] shadow-xl border border-slate-200 overflow-hidden">
+
+            <!-- ヘッダー -->
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div id="activeInterviewerIcon"
+                        class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-xl">👩‍💼</div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Interviewer</p>
+                        <p class="text-sm font-bold text-slate-900" id="activeInterviewerName">優しい面接官</p>
+                    </div>
+                </div>
+                <button id="endInterviewBtn"
+                    class="text-xs font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors border border-red-200">
+                    終了する
+                </button>
+            </div>
+
+            <!-- チャットエリア -->
+            <div id="chatArea" class="flex-grow overflow-y-auto p-6 space-y-6 bg-slate-50/30">
+                <!-- メッセージがここに追加されます -->
+            </div>
+
+            <!-- 入力エリア -->
+            <div class="p-4 bg-white border-t border-slate-100">
+                <div id="feedbackArea" class="hidden mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                    <p class="text-xs font-bold text-yellow-800 mb-1 flex items-center gap-1"><i data-lucide="lightbulb"
+                            class="w-3 h-3"></i> フィードバック</p>
+                    <p id="feedbackText" class="text-sm text-yellow-800 leading-relaxed"></p>
+                </div>
+
+                <div class="relative">
+                    <div id="recordingIndicator"
+                        class="hidden absolute -top-12 left-1/2 transform -translate-x-1/2 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-2 animate-pulse">
+                        <div class="w-2 h-2 bg-white rounded-full"></div>
+                        録音中...
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button id="micBtn"
+                            class="flex-shrink-0 w-12 h-12 bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 rounded-xl flex items-center justify-center transition-all relative overflow-hidden group">
+                            <div id="micRipple" class="hidden absolute inset-0 bg-red-100 rounded-xl animate-ping">
+                            </div>
+                            <i data-lucide="mic" class="w-5 h-5 relative z-10"></i>
+                        </button>
+                        <input type="text" id="textInput" placeholder="回答を入力（マイクでも入力できます）"
+                            class="flex-grow px-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all text-sm">
+                        <button id="sendBtn"
+                            class="flex-shrink-0 w-12 h-12 bg-teal-600 hover:bg-teal-700 text-white rounded-xl flex items-center justify-center shadow-lg shadow-teal-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 結果画面 -->
+        <div id="resultScreen"
+            class="hidden bg-white rounded-[2.5rem] shadow-xl border border-slate-200 p-8 md:p-12 my-auto max-h-full overflow-y-auto">
+            <div class="text-center mb-8">
+                <div
+                    class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 text-teal-600 mb-4">
+                    <i data-lucide="award" class="w-8 h-8"></i>
+                </div>
+                <h2 class="text-3xl font-bold text-slate-900">面接お疲れ様でした！</h2>
+                <p class="text-slate-500 mt-2">今回の面接の総評です。</p>
+            </div>
+
+            <div class="bg-slate-50 rounded-2xl p-6 mb-8 border border-slate-100">
+                <h3 class="font-bold text-slate-900 mb-4 flex items-center gap-2"><i data-lucide="star"
+                        class="w-5 h-5 text-yellow-500"></i> アドバイス</h3>
+                <div id="finalFeedback" class="text-slate-700 leading-relaxed text-sm space-y-4"></div>
+            </div>
+
+            <div class="flex gap-4">
+                <a href="home.html"
+                    class="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-center hover:bg-slate-50 transition-colors">ホームへ戻る</a>
+                <button onclick="location.reload()"
+                    class="flex-1 py-3 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 transition-colors shadow-lg shadow-teal-100">もう一度練習</button>
+            </div>
+        </div>
+
+    </div>
+    <!DOCTYPE html>
+    <html lang="ja">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>模擬面接 - Job Compass</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <link rel="stylesheet" href="css/mensetu.css">
+    </head>
+
+    <body class="min-h-screen flex flex-col">
+
+        <div class="bg-grid-pattern"></div>
+
+        <nav
+            class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 h-16 transition-all duration-300">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+                <div class="flex justify-between items-center h-full">
+                    <a href="home.html" class="flex items-center gap-2 group">
+                        <svg class="h-8 w-8 text-blue-600 transition-transform group-hover:scale-110"
+                            xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" />
+                            <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <span class="text-xl font-bold tracking-tight text-slate-900">Job Compass</span>
+                    </a>
+                    <div class="hidden md:flex items-center gap-1">
+                        <a href="sindan.html"
+                            class="px-4 py-2 rounded-full text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all">適正診断</a>
+                        <a href="camera.html"
+                            class="px-4 py-2 rounded-full text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all">服装分析</a>
+                        <a href="mensetu.html"
+                            class="px-4 py-2 rounded-full text-sm font-medium text-slate-900 bg-slate-100 transition-all">模擬面接</a>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <a href="home.html"
+                            class="flex items-center text-sm font-bold text-slate-500 hover:text-slate-900 px-2 transition-colors">
+                            <svg class="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                            </svg>
+                            ホームに戻る
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="flex-grow w-full max-w-4xl mx-auto p-4 sm:p-6 py-12 flex flex-col h-[calc(100vh-4rem)]">
+
+            <!-- 設定画面 -->
+            <div id="setupScreen"
+                class="bg-white rounded-[2.5rem] shadow-xl border border-slate-200 p-8 md:p-12 my-auto">
+                <div class="text-center mb-10">
+                    <div
+                        class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 text-teal-600 mb-6">
+                        <i data-lucide="mic" class="w-8 h-8"></i>
+                    </div>
+                    <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">模擬面接</h1>
+                    <p class="text-slate-500">本番さながらの緊張感で、回答力を鍛えましょう。<br>面接官のタイプを選んでスタートしてください。</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <button
+                        class="interviewer-btn group relative p-6 rounded-2xl border-2 border-slate-200 hover:border-teal-500 hover:bg-teal-50 transition-all text-left"
+                        data-type="gentle">
+                        <div class="flex items-center gap-4 mb-2">
+                            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-2xl">
+                                👩‍💼
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-lg">優しい面接官</h3>
+                                <p class="text-xs text-slate-500">初めての方におすすめ</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-600 mt-2">あなたの良さを引き出すように、穏やかな雰囲気で質問します。</p>
+                        <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 text-teal-600"><i
+                                data-lucide="check-circle" class="w-6 h-6"></i></div>
+                    </button>
+
+                    <button
+                        class="interviewer-btn group relative p-6 rounded-2xl border-2 border-slate-200 hover:border-teal-500 hover:bg-teal-50 transition-all text-left"
+                        data-type="strict">
+                        <div class="flex items-center gap-4 mb-2">
+                            <div class="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-2xl">
+                                👨‍⚖️
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-lg">厳しい面接官</h3>
+                                <p class="text-xs text-slate-500">圧迫面接対策に</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-600 mt-2">論理的な矛盾を鋭く指摘し、深掘りした質問を行います。</p>
+                        <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 text-teal-600"><i
+                                data-lucide="check-circle" class="w-6 h-6"></i></div>
+                    </button>
+                </div>
+
+                <button id="startInterviewBtn" disabled
+                    class="w-full bg-slate-300 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-none cursor-not-allowed text-lg flex items-center justify-center gap-2">
+                    <span>面接を開始する</span>
+                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- 面接画面 -->
+            <div id="interviewScreen"
+                class="hidden flex-col h-full bg-white rounded-[2rem] shadow-xl border border-slate-200 overflow-hidden">
+
+                <!-- ヘッダー -->
+                <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div id="activeInterviewerIcon"
+                            class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-xl">👩‍💼
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Interviewer</p>
+                            <p class="text-sm font-bold text-slate-900" id="activeInterviewerName">優しい面接官</p>
+                        </div>
+                    </div>
+                    <button id="endInterviewBtn"
+                        class="text-xs font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors border border-red-200">
+                        終了する
+                    </button>
+                </div>
+
+                <!-- チャットエリア -->
+                <div id="chatArea" class="flex-grow overflow-y-auto p-6 space-y-6 bg-slate-50/30">
+                    <!-- メッセージがここに追加されます -->
+                </div>
+
+                <!-- 入力エリア -->
+                <div class="p-4 bg-white border-t border-slate-100">
+                    <div id="feedbackArea" class="hidden mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                        <p class="text-xs font-bold text-yellow-800 mb-1 flex items-center gap-1"><i
+                                data-lucide="lightbulb" class="w-3 h-3"></i> フィードバック</p>
+                        <p id="feedbackText" class="text-sm text-yellow-800 leading-relaxed"></p>
+                    </div>
+
+                    <div class="relative">
+                        <div id="recordingIndicator"
+                            class="hidden absolute -top-12 left-1/2 transform -translate-x-1/2 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-2 animate-pulse">
+                            <div class="w-2 h-2 bg-white rounded-full"></div>
+                            録音中...
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button id="micBtn"
+                                class="flex-shrink-0 w-12 h-12 bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 rounded-xl flex items-center justify-center transition-all relative overflow-hidden group">
+                                <div id="micRipple" class="hidden absolute inset-0 bg-red-100 rounded-xl animate-ping">
+                                </div>
+                                <i data-lucide="mic" class="w-5 h-5 relative z-10"></i>
+                            </button>
+                            <input type="text" id="textInput" placeholder="回答を入力（マイクでも入力できます）"
+                                class="flex-grow px-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all text-sm">
+                            <button id="sendBtn"
+                                class="flex-shrink-0 w-12 h-12 bg-teal-600 hover:bg-teal-700 text-white rounded-xl flex items-center justify-center shadow-lg shadow-teal-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i data-lucide="send" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 結果画面 -->
+            <div id="resultScreen"
+                class="hidden bg-white rounded-[2.5rem] shadow-xl border border-slate-200 p-8 md:p-12 my-auto max-h-full overflow-y-auto">
+                <div class="text-center mb-8">
+                    <div
+                        class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-50 text-teal-600 mb-4">
+                        <i data-lucide="award" class="w-8 h-8"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-slate-900">面接お疲れ様でした！</h2>
+                    <p class="text-slate-500 mt-2">今回の面接の総評です。</p>
+                </div>
+
+                <div class="bg-slate-50 rounded-2xl p-6 mb-8 border border-slate-100">
+                    <h3 class="font-bold text-slate-900 mb-4 flex items-center gap-2"><i data-lucide="star"
+                            class="w-5 h-5 text-yellow-500"></i> アドバイス</h3>
+                    <div id="finalFeedback" class="text-slate-700 leading-relaxed text-sm space-y-4"></div>
+                </div>
+
+                <div class="flex gap-4">
+                    <a href="home.html"
+                        class="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-center hover:bg-slate-50 transition-colors">ホームへ戻る</a>
+                    <button onclick="location.reload()"
+                        class="flex-1 py-3 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 transition-colors shadow-lg shadow-teal-100">もう一度練習</button>
+                </div>
+            </div>
+
+        </div>
+
+        <footer class="w-full bg-white border-t border-slate-200 py-10 mt-auto">
+            <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400">&copy; 2025 Career Support AI. All
+                rights
+                reserved.</div>
+        </footer>
+
+        <script src="js/mensetu.js"></script>
+    </body>
+
+    </html>
