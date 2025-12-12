@@ -2,16 +2,19 @@
 
 body {
     font-family: 'Inter', 'Noto Sans JP', sans-serif;
-    background-color: #f8fafc; /* slate-50 */
-    color: #0f172a; /* slate-900 */
+    background-color: #f8fafc;
+    /* slate-50 */
+    color: #0f172a;
+    /* slate-900 */
     -webkit-font-smoothing: antialiased;
-    padding-top: 4rem; /* 64px */
+    padding-top: 4rem;
+    /* 64px */
 }
 
 /* 背景の微細なグリッドパターン */
 .bg-grid-pattern {
     background-image: linear-gradient(to right, #e2e8f0 1px, transparent 1px),
-                      linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);
+        linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);
     background-size: 40px 40px;
     mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
     -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
@@ -23,15 +26,37 @@ body {
 
 /* アニメーション定義 */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
+
 .animate-fade-in {
     animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-.delay-100 { animation-delay: 0.1s; }
-.delay-200 { animation-delay: 0.2s; }
+
+.delay-100 {
+    animation-delay: 0.1s;
+}
+
+.delay-200 {
+    animation-delay: 0.2s;
+}
 
 /* モーダルアニメーション */
-.modal-enter { opacity: 0; transform: scale(0.95); }
-.modal-enter-active { opacity: 1; transform: scale(1); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.modal-enter {
+    opacity: 0;
+    transform: scale(0.95);
+}
+
+.modal-enter-active {
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}

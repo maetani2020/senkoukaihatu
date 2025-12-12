@@ -1,33 +1,48 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>適正診断 - 就活サポート</title>
-    <link rel="stylesheet" href="css/sindan.css">
-    
+    <title>適正診断 - Job Compass</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="css/sindan.css">
 </head>
+
 <body class="min-h-screen flex flex-col">
 
     <div class="bg-grid-pattern"></div>
 
-    <nav class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 h-16 transition-all duration-300">
+    <nav
+        class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-50 h-16 transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
             <div class="flex justify-between items-center h-full">
                 <a href="home.html" class="flex items-center gap-2 group">
-                    <svg class="h-8 w-8 text-blue-600 transition-transform group-hover:scale-110" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span class="text-xl font-bold tracking-tight text-slate-900">就活サポート</span>
+                    <svg class="h-8 w-8 text-blue-600 transition-transform group-hover:scale-110"
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" />
+                        <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span class="text-xl font-bold tracking-tight text-slate-900">Job Compass</span>
                 </a>
                 <div class="hidden md:flex items-center gap-1">
-                    <a href="sindan.html" class="px-4 py-2 rounded-full text-sm font-medium text-slate-900 bg-slate-100 transition-all">適正診断</a>
-                    <a href="camera.html" class="px-4 py-2 rounded-full text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all">AI服装分析</a>
+                    <a href="sindan.html"
+                        class="px-4 py-2 rounded-full text-sm font-medium text-slate-900 bg-slate-100 transition-all">適正診断</a>
+                    <a href="camera.html"
+                        class="px-4 py-2 rounded-full text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all">服装分析</a>
+                    <a href="mensetu.html"
+                        class="px-4 py-2 rounded-full text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all">模擬面接</a>
                 </div>
                 <div class="flex items-center gap-3">
-                    <a href="home.html" class="flex items-center text-sm font-bold text-slate-500 hover:text-slate-900 px-2 transition-colors">
-                        <svg class="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                    <a href="home.html"
+                        class="flex items-center text-sm font-bold text-slate-500 hover:text-slate-900 px-2 transition-colors">
+                        <svg class="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
                         ホームに戻る
                     </a>
                 </div>
@@ -37,17 +52,20 @@
 
     <div id="bunsekiAppContainer" class="flex-grow w-full flex items-center justify-center p-4 sm:p-6 py-12">
         <div id="bunsekiContent" class="w-full max-w-2xl">
-            </div>
+        </div>
     </div>
 
-    <div id="errorMessage" class="hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-md z-50">
+    <div id="errorMessage"
+        class="hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-md z-50">
         <span id="errorText"></span>
     </div>
 
     <footer class="w-full bg-white border-t border-slate-200 py-10 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400">&copy; 2025 Career Support AI. All rights reserved.</div>
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400">&copy; 2025 Career Support AI. All rights
+            reserved.</div>
     </footer>
 
     <script src="js/sindan.js"></script>
 </body>
+
 </html>

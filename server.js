@@ -1,156 +1,240 @@
-const express = require("express");
-const path = require("path");
-const fs = require("fs");
-const crypto = require("crypto");
-
-const fetch = global.fetch || (() => {
-  try { return require('node-fetch'); } catch (e) { return null; }
-})();
-
-try {
-  require('dotenv').config();
-} catch (e) {
-  console.warn('dotenv not available — continue using environment variables');
-}
+const express = require('express');
+const cors = require('cors');
+const { GoogleGenerativeAI, SchemaType } = require('@google/generative-ai');
+require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 
-app.use(express.json({ limit: '12mb' }));
-app.use(express.urlencoded({ extended: true, limit: '12mb' }));
-app.use(express.static(__dirname));
+// Middleware
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
 
-// CORS
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') return res.sendStatus(200);
-  next();
-});
+// Gemini Configuration
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || null;
+// Serve static files
+app.use(express.static('.'));
 
-if (!GEMINI_API_KEY) {
-  console.warn('Warning: GEMINI_API_KEY not set. Set GEMINI_API_KEY in environment or .env (do not commit .env).');
-}
+// --- Schemas ---
 
-// --- ユーザー管理：CSV認証 ---
-const USERS_CSV = path.join(__dirname, "users.csv");
-
-// パスワードをSHA-256ハッシュ化
-function hashPassword(password) {
-    return crypto.createHash('sha256').update(password).digest('hex');
-}
-
-// CSV読み込み
-function readUsersCSV() {
-    if (!fs.existsSync(USERS_CSV)) return [];
-    return fs.readFileSync(USERS_CSV, 'utf8')
-        .split('\n')
-        .filter(line => line.trim())
-        .map(line => {
-            const [name, email, password_hash] = line.split(',');
-            return { name, email, password_hash };
-        });
-}
-
-// CSV追記（新規登録）
-// 末尾の改行が無い場合は明示的に追加する
-function appendUserCSV(name, email, passwordHash) {
-    let needNewLine = false;
-    if (fs.existsSync(USERS_CSV)) {
-        const stat = fs.statSync(USERS_CSV);
-        if (stat.size > 0) {
-            const fd = fs.openSync(USERS_CSV, 'r');
-            const buf = Buffer.alloc(1);
-            fs.readSync(fd, buf, 0, 1, stat.size - 1);
-            fs.closeSync(fd);
-            if (buf[0] !== 0x0a && buf[0] !== 0x0d) { // \n or \r
-                needNewLine = true;
-            }
+const sindanSchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+        industryFit: { type: SchemaType.STRING },
+        direction: { type: SchemaType.STRING },
+        example: { type: SchemaType.STRING },
+        advice: {
+            type: SchemaType.ARRAY,
+            items: { type: SchemaType.STRING }
         }
-    }
-    const line = `${needNewLine ? '\n' : ''}${name},${email},${passwordHash}\n`;
-    fs.appendFileSync(USERS_CSV, line);
-}
+    },
+    required: ["industryFit", "direction", "example", "advice"]
+};
 
-// 新規登録API
-app.post("/api/register", (req, res) => {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-        return res.status(400).json({ success: false, error: "Missing required fields" });
-    }
-    const users = readUsersCSV();
-    if (users.find((u) => u.email === email)) {
-        return res.status(409).json({ success: false, error: "Email already exists" });
-    }
-    const passwordHash = hashPassword(password);
-    appendUserCSV(name, email, passwordHash);
-    // セッション管理しない（JWT, Cookieなどは未実装）--簡易
-    res.json({ success: true, user: { name, email } });
-});
+const mensetuSchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+        feedback: { type: SchemaType.STRING },
+        nextQuestion: { type: SchemaType.STRING }
+    },
+    required: ["feedback", "nextQuestion"]
+};
 
-// ログインAPI
-app.post("/api/login", (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ success: false, error: "Missing email or password" });
-    }
-    const users = readUsersCSV();
-    const passwordHash = hashPassword(password);
-    const user = users.find(
-        (u) => u.email === email && u.password_hash === passwordHash
-    );
-    if (!user) {
-        return res.status(401).json({ success: false, error: "Invalid credentials" });
-    }
-    res.json({ success: true, user: { name: user.name, email: user.email } });
-});
+const cameraSchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+        overallScore: { type: SchemaType.INTEGER },
+        evaluation: {
+            type: SchemaType.ARRAY,
+            items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                    item: { type: SchemaType.STRING },
+                    score: { type: SchemaType.INTEGER },
+                    comment: { type: SchemaType.STRING }
+                },
+                required: ["item", "score", "comment"]
+            }
+        },
+        overallComment: {
+            type: SchemaType.OBJECT,
+            properties: {
+                goodPoints: { type: SchemaType.STRING },
+                suggestions: { type: SchemaType.STRING },
+                summary: { type: SchemaType.STRING }
+            },
+            required: ["goodPoints", "suggestions", "summary"]
+        }
+    },
+    required: ["overallScore", "evaluation", "overallComment"]
+};
 
-// （必要に応じてログアウトAPIやセッションAPIを追加してください）
+const mensetuSummarySchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+        overallScore: { type: SchemaType.NUMBER },
+        overallEvaluation: { type: SchemaType.STRING },
+        strengths: {
+            type: SchemaType.ARRAY,
+            items: { type: SchemaType.STRING }
+        },
+        weaknesses: {
+            type: SchemaType.ARRAY,
+            items: { type: SchemaType.STRING }
+        },
+        radarChart: {
+            type: SchemaType.OBJECT,
+            properties: {
+                skill: { type: SchemaType.NUMBER },
+                logical: { type: SchemaType.NUMBER },
+                enthusiasm: { type: SchemaType.NUMBER },
+                flexibility: { type: SchemaType.NUMBER },
+                knowledge: { type: SchemaType.NUMBER }
+            },
+            required: ["skill", "logical", "enthusiasm", "flexibility", "knowledge"]
+        },
+        interviewerComment: { type: SchemaType.STRING },
+        advice: { type: SchemaType.STRING }
+    },
+    required: ["overallScore", "overallEvaluation", "strengths", "weaknesses", "radarChart", "interviewerComment", "advice"]
+};
 
-// --- Gemini/AI API連携 ---
-async function callGeminiApi(apiUrl, payload, maxRetries = 3) {
-  if (!fetch) throw new Error('fetch is not available in this environment. Install node-fetch or use Node 18+.');
-  let attempt = 0;
-  const headers = { 'Content-Type': 'application/json' };
+// ... (Existing endpoints) ...
 
-  while (attempt < maxRetries) {
+// 4. 模擬面接総評 (Mensetu Summary)
+app.post('/api/mensetu/summary', async (req, res) => {
     try {
-      const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-      });
+        const { history } = req.body;
 
-      if (res.status === 429) {
-        const delay = Math.pow(2, attempt) * 1000;
-        await new Promise(resolve => setTimeout(resolve, delay));
-        attempt++;
-        continue;
-      }
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.0-flash-lite-001",
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: mensetuSummarySchema
+            }
+        });
 
-      const json = await res.json();
-      return { ok: res.ok, status: res.status, json };
-    } catch (err) {
-      if (attempt + 1 >= maxRetries) throw err;
-      const delay = Math.pow(2, attempt) * 1000;
-      await new Promise(resolve => setTimeout(resolve, delay));
-      attempt++;
+        const prompt = `
+        あなたはプロの面接官です。
+        以下の模擬面接の履歴全体を分析し、最終的な評価レポートを作成してください。
+
+        会話履歴:
+        ${JSON.stringify(history)}
+        `;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        console.log("Mensetu Summary API Response:", text);
+
+        try {
+            let jsonResponse = JSON.parse(text);
+            if (Array.isArray(jsonResponse)) {
+                jsonResponse = jsonResponse[0];
+            }
+            res.json(jsonResponse);
+        } catch (e) {
+            console.error("JSON Parse Error:", e);
+            res.status(500).json({ error: 'Failed to parse AI response' });
+        }
+
+    } catch (error) {
+        console.error('Error in /api/mensetu/summary:', error);
+
+        if (error.message && (error.message.includes('429') || error.message.includes('Quota'))) {
+            return res.status(429).json({
+                error: 'Quota exceeded. improved error handling',
+                message: 'アクセス集中等のため一時的に利用できません。少し時間を置いてから再度お試しください。',
+                retryAfter: 60
+            });
+        }
+        res.status(500).json({ error: error.message });
     }
-  }
-  throw new Error('Failed to call Gemini API after retries');
-}
+});
 
-app.post('/api/analyze-image', async (req, res) => {
-  try {
-    if (!GEMINI_API_KEY) return res.status(500).json({ success: false, error: 'Server not configured: GEMINI_API_KEY missing' });
 
-    const { scene, area, mimeType, base64Image } = req.body;
-    if (!scene || !area || !mimeType || !base64Image) {
-      return res.status(400).json({ success: false, error: 'Missing required parameters: scene, area, mimeType, base64Image' });
+app.post('/api/sindan', async (req, res) => {
+    try {
+        const { element, category, userProfile } = req.body;
+
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.0-flash-lite-001",
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: sindanSchema
+            }
+        });
+
+        let prompt = `
+        あなたはプロのキャリアアドバイザーです。
+        就活生の「${element}」（カテゴリ：${category}）という強みを分析し、
+        志望企業へのアピール文とアドバイスを作成してください。
+
+        ユーザー情報:
+        ${userProfile ? JSON.stringify(userProfile) : '特になし'}
+        `;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        console.log("Sindan API Response:", text);
+
+        try {
+            let jsonResponse = JSON.parse(text);
+            // Handle array response if API wraps result
+            if (Array.isArray(jsonResponse)) {
+                jsonResponse = jsonResponse[0];
+            }
+            res.json(jsonResponse);
+        } catch (e) {
+            console.error("JSON Parse Error details:", text);
+            res.status(500).json({ error: 'Failed to parse AI response' });
+        }
+
+    } catch (error) {
+        console.error('Error in /api/sindan:', error);
+        if (error.message && (error.message.includes('429') || error.message.includes('Quota'))) {
+            return res.status(429).json({
+                error: 'Quota exceeded. improved error handling',
+                message: 'アクセス集中等のため一時的に利用できません。少し時間を置いてから再度お試しください。',
+                retryAfter: 60
+            });
+        }
+        res.status(500).json({ error: error.message });
     }
+});
+
+// 2. 模擬面接 (Mensetu)
+app.post('/api/mensetu', async (req, res) => {
+    try {
+        const { history, interviewerType, userMessage } = req.body;
+
+
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.0-flash-lite-001",
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: mensetuSchema
+            }
+        });
+
+        let systemPrompt = "あなたは面接官です。";
+        if (interviewerType === 'strict') {
+            systemPrompt += "厳しく、論理的な矛盾を指摘する圧迫面接気味のスタイルで話してください。";
+        } else {
+            systemPrompt += "優しく、相手の良さを引き出す穏やかなスタイルで話してください。";
+        }
+        systemPrompt += "ユーザーの回答に対し、フィードバック（感想）と、次の質問をJSON形式で返してください。";
+
+        // History validation: Gemini requires history to start with 'user' role
+        let validHistory = history || [];
+        if (validHistory.length > 0 && validHistory[0].role !== 'user') {
+            // If history starts with model, prepend a dummy user message or remove it. 
+            // In this context, it's safer to pretend the user started the conversation.
+            validHistory = [{ role: 'user', parts: [{ text: "面接を始めてください。" }] }, ...validHistory];
 
     const responseSchema = {
       type: "OBJECT",
@@ -193,63 +277,129 @@ app.post('/api/analyze-image', async (req, res) => {
             { text: `この服装を「${scene}」で、範囲「${area}」で評価してください。` },
             { inlineData: { mimeType: mimeType, data: base64Image } }
           ]
+>>>
         }
-      ],
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      generationConfig: { responseMimeType: 'application/json', responseSchema }
-    };
 
-    const { ok, status, json } = await callGeminiApi(apiUrl, payload);
+        const chat = model.startChat({
+            history: validHistory,
+        });
 
-    if (!ok) {
-      return res.status(status || 500).json({ success: false, error: 'Gemini API error', details: json });
+        const msg = `${systemPrompt}\n\nユーザーの回答: ${userMessage}`;
+
+        const result = await chat.sendMessage(msg);
+        const response = await result.response;
+        const text = response.text();
+
+        console.log("Mensetu API Response:", text);
+
+        try {
+            let jsonResponse = JSON.parse(text);
+            if (Array.isArray(jsonResponse)) {
+                jsonResponse = jsonResponse[0];
+            }
+            res.json(jsonResponse);
+        } catch (e) {
+            console.error("JSON Parse Error:", e);
+            res.status(500).json({ error: 'Failed to parse AI response' });
+        }
+
+    } catch (error) {
+        console.error('Error in /api/mensetu:', error);
+        if (error.message && (error.message.includes('429') || error.message.includes('Quota'))) {
+            return res.status(429).json({
+                error: 'Quota exceeded. improved error handling',
+                message: 'アクセス集中等のため一時的に利用できません。少し時間を置いてから再度お試しください。',
+                retryAfter: 60
+            });
+        }
+        res.status(500).json({ error: error.message });
     }
+});
 
-    const candidate = json?.candidates?.[0];
-    const textPart = candidate?.content?.parts?.[0]?.text;
-    if (!textPart) return res.status(500).json({ success: false, error: 'Unexpected Gemini response', details: json });
+// 3. 服装分析 (Camera)
+app.post('/api/camera', async (req, res) => {
+    try {
+        const { imageBase64, scene, attire } = req.body;
 
-    let parsed;
-    try { parsed = JSON.parse(textPart); } catch (err) {
-      return res.status(500).json({ success: false, error: 'Failed to parse JSON from Gemini', raw: textPart });
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.0-flash-lite-001",
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: cameraSchema
+            }
+        });
+
+        const prompt = `
+        あなたはプロの面接官・イメージコンサルタントです。
+        就活生の服装画像を分析し、評価してください。
+
+        シチュエーション: ${scene}
+        服装タイプ: ${attire}
+
+        以下の5つの項目について、それぞれ1〜5点（5が良い）で評価し、コメントしてください。
+        1. 清潔感
+        2. TPO（場面）への適合度
+        3. サイズ感・着こなし
+        4. 身だしなみ（髪型・表情）
+        5. 全体の雰囲気・姿勢
+
+        出力はJSON形式で行ってください。
+        `;
+
+        const imagePart = {
+            inlineData: {
+                data: imageBase64,
+                mimeType: "image/jpeg"
+            },
+        };
+
+        const result = await model.generateContent([prompt, imagePart]);
+        const response = await result.response;
+        const text = response.text();
+
+        console.log("Camera API Response:", text);
+
+        try {
+            let jsonResponse = JSON.parse(text);
+            if (Array.isArray(jsonResponse)) {
+                jsonResponse = jsonResponse[0];
+            }
+
+            // Calculate Overall Score based on evaluation items
+            // Max score = 5 items * 5 points = 25
+            // Convert to 100 scale: score * 4
+            if (jsonResponse.evaluation && Array.isArray(jsonResponse.evaluation)) {
+                let sum = 0;
+                let max = 0;
+                jsonResponse.evaluation.forEach(item => {
+                    sum += item.score || 0;
+                    max += 5;
+                });
+                // Avoid division by zero
+                if (max > 0) {
+                    jsonResponse.overallScore = Math.round((sum / max) * 100);
+                }
+            }
+
+            res.json(jsonResponse);
+        } catch (e) {
+            console.error("JSON Parse Error:", e);
+            res.status(500).json({ error: 'Failed to parse AI response' });
+        }
+
+    } catch (error) {
+        console.error('Error in /api/camera:', error);
+        if (error.message && (error.message.includes('429') || error.message.includes('Quota'))) {
+            return res.status(429).json({
+                error: 'Quota exceeded. improved error handling',
+                message: 'アクセス集中等のため一時的に利用できません。少し時間を置いてから再度お試しください。',
+                retryAfter: 60
+            });
+        }
+        res.status(500).json({ error: error.message });
     }
-
-    return res.json({ success: true, data: parsed });
-
-  } catch (err) {
-    console.error('Error /api/analyze-image:', err);
-    return res.status(500).json({ success: false, error: String(err) });
-  }
 });
 
-app.post('/api/generate-text', async (req, res) => {
-  try {
-    if (!GEMINI_API_KEY) return res.status(500).json({ success: false, error: 'Server not configured: GEMINI_API_KEY missing' });
-    const { prompt, systemPrompt } = req.body;
-    if (!prompt) return res.status(400).json({ success: false, error: 'Missing prompt in request body' });
-
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
-
-    const payload = {
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
-      generationConfig: { responseMimeType: 'text/plain' }
-    };
-
-    const { ok, status, json } = await callGeminiApi(apiUrl, payload);
-    if (!ok) return res.status(status || 500).json({ success: false, error: 'Gemini API error', details: json });
-
-    const text = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return res.json({ success: true, text });
-  } catch (err) {
-    console.error('Error /api/generate-text:', err);
-    return res.status(500).json({ success: false, error: String(err) });
-  }
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
 });
-
-// --- ルーティング ---
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "home.html"));
-});
-
-app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));

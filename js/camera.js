@@ -36,7 +36,7 @@ let base64Image = null;
 let mimeType = null;
 let cameraStream = null;
 let myRadarChart;
-let selectedTimer = 0; 
+let selectedTimer = 0;
 let countdownInterval = null;
 let lastInputMethod = 'upload';
 
@@ -116,6 +116,12 @@ retakeButton.addEventListener('click', handleRetake);
     dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
 });
 dropZone.addEventListener('drop', (e) => handleFile(e.dataTransfer.files[0]), false);
+
+// Explicit click handler for dropZone
+dropZone.addEventListener('click', () => {
+    imageInput.click();
+});
+
 imageInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
 
 function handleFile(file) {
@@ -130,7 +136,7 @@ function handleFile(file) {
         base64Image = e.target.result.split(',')[1];
         checkAnalyzeButtonState();
         hideError();
-        uploadUi.classList.add('hidden'); 
+        uploadUi.classList.add('hidden');
     };
     reader.readAsDataURL(file);
 }
@@ -160,7 +166,7 @@ async function startCamera() {
     } catch (err) {
         console.error("Camera error:", err);
         showError("カメラへのアクセスが許可されませんでした。");
-        selectInputMethod('upload'); 
+        selectInputMethod('upload');
     }
 }
 
@@ -175,7 +181,7 @@ function stopCamera() {
 function handleCaptureClick() {
     if (countdownInterval) return;
     if (selectedTimer > 0) startCountdown(selectedTimer);
-    else takePicture(); 
+    else takePicture();
 }
 
 function startCountdown(seconds) {
@@ -191,9 +197,9 @@ function startCountdown(seconds) {
             countdownText.textContent = count;
         } else {
             clearInterval(countdownInterval);
-            countdownInterval = null; 
+            countdownInterval = null;
             countdownOverlay.classList.remove('visible');
-            takePicture(); 
+            takePicture();
             captureButton.disabled = false;
             captureButton.innerHTML = '<i data-lucide="aperture" class="w-6 h-6"></i> 撮影する';
             lucide.createIcons();
@@ -206,31 +212,31 @@ function takePicture() {
     captureCanvas.width = videoEl.videoWidth;
     captureCanvas.height = videoEl.videoHeight;
     context.drawImage(videoEl, 0, 0, videoEl.videoWidth, videoEl.videoHeight);
-    
-    const dataUrl = captureCanvas.toDataURL('image/jpeg'); 
+
+    const dataUrl = captureCanvas.toDataURL('image/jpeg');
     mimeType = 'image/jpeg';
     base64Image = dataUrl.split(',')[1];
-    
+
     imagePreview.src = dataUrl;
     imagePreviewContainer.classList.remove('hidden');
     checkAnalyzeButtonState();
-    stopCamera(); 
-    cameraUi.classList.add('hidden'); 
+    stopCamera();
+    cameraUi.classList.add('hidden');
 }
 
 function handleRetake() {
     base64Image = null;
     mimeType = null;
     imagePreview.src = "";
-    imageInput.value = null; 
+    imageInput.value = null;
     imagePreviewContainer.classList.add('hidden');
     analyzeButton.disabled = true;
     hideError();
     analysisResultContainer.classList.add('hidden');
-    
+
     checkAnalyzeButtonState();
     selectInputMethod(lastInputMethod);
-    if (lastInputMethod === 'camera') startCamera(); 
+    if (lastInputMethod === 'camera') startCamera();
 }
 
 // --- 分析ボタンの制御 ---
@@ -240,7 +246,7 @@ function checkAnalyzeButtonState() {
     else if (!selectedAttire) msg = "2. 分析したい服装を選択してください"; // 新規条件
     else if (!selectedArea) msg = "3. 分析する範囲を選択してください";
     else if (!base64Image) msg = "4. 写真を準備してください";
-    
+
     if (msg) {
         analyzeButton.disabled = true;
         analyzeButton.classList.add('opacity-50', 'cursor-not-allowed', 'bg-gray-400');
@@ -257,90 +263,47 @@ function checkAnalyzeButtonState() {
 }
 analyzeButton.addEventListener('click', callGeminiApi);
 
-// --- Gemini API 呼び出し (クライアントサイド) ---
+// --- Gemini API 呼び出し (Mock) ---
 async function callGeminiApi() {
     loadingSpinner.classList.remove('hidden');
     analyzeButton.disabled = true;
     analyzeButton.querySelector('span').textContent = '分析中です...';
     hideError();
     analysisResultContainer.classList.add('hidden');
-    retakeButton.disabled = true; 
-
-    const apiKey = ""; // Canvasが自動挿入
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
-    const systemPrompt = `
-    あなたはプロの就活キャリアアドバイザーです。
-    ユーザーから提供された画像（就活生の服装）を分析し、指定された場面と服装の種類にふさわしいか評価してください。
-    
-    評価対象場面: ${selectedScene}
-    評価対象服装: ${selectedAttire}
-    評価範囲: ${selectedArea}
-
-    以下のJSON形式で結果を出力してください:
-    {
-        "scene": "評価した場面名",
-        "overallScore": 0から100の整数,
-        "evaluation": [
-            { "item": "清潔感", "score": 1-5, "comment": "短いコメント" },
-            { "item": "フォーマル度", "score": 1-5, "comment": "短いコメント" },
-            { "item": "サイズ感", "score": 1-5, "comment": "短いコメント" },
-            { "item": "髪型・表情", "score": 1-5, "comment": "短いコメント" },
-            { "item": "姿勢・雰囲気", "score": 1-5, "comment": "短いコメント" }
-        ],
-        "overallComment": {
-            "goodPoints": "良かった点",
-            "suggestions": "具体的な改善点",
-            "summary": "励ましの総評"
-        }
-    }
-    80点以上を合格ラインとし、辛口すぎず、でも具体的なアドバイスを心がけてください。
-    `;
-
-    const payload = {
-        contents: [{
-            role: "user",
-            parts: [
-                { text: systemPrompt },
-                { inlineData: { mimeType: mimeType, data: base64Image } }
-            ]
-        }],
-        generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: responseSchema
-        }
-    };
+    retakeButton.disabled = true;
 
     try {
-        const response = await fetchWithBackoff(apiUrl, {
+        const response = await fetch('http://localhost:3000/api/camera', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                imageBase64: base64Image,
+                scene: selectedScene,
+                attire: selectedAttire // 新規追加
+            })
         });
 
-        if (!response.ok) throw new Error('API Error');
-        
-        const result = await response.json();
-        
-        if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0].text) {
-            const data = JSON.parse(result.candidates[0].content.parts[0].text);
-            
-            // ★ 履歴保存処理を追加 ★
-            saveHistory(data);
-
-            displayResult(data);
-        } else {
-            throw new Error('No content in response');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            if (response.status === 429) {
+                throw new Error(errorData.message || "アクセス集中等のため一時的に利用できません。時間をおいて再度お試しください。");
+            }
+            throw new Error('API request failed');
         }
-        
+        const data = await response.json();
+
+        // ★ 履歴保存処理を追加 ★
+        saveHistory(data);
+        displayResult(data);
+
     } catch (error) {
-        console.error("Fetch error:", error);
-        showError("分析に失敗しました。しばらくしてからもう一度お試しください。");
+        console.error('Error:', error);
+        showError(error.message || "分析中にエラーが発生しました。時間を置いて再度お試しください。");
     } finally {
         loadingSpinner.classList.add('hidden');
-        analyzeButton.disabled = false; 
+        analyzeButton.disabled = false;
         analyzeButton.querySelector('span').textContent = '分析スタート';
-        retakeButton.disabled = false; 
+        retakeButton.disabled = false;
         stopCamera();
     }
 }
@@ -350,15 +313,15 @@ function saveHistory(data) {
     try {
         const SESSION_KEY = 'career_app_session';
         const HISTORY_KEY_PREFIX = 'career_app_history_';
-        
+
         const user = JSON.parse(localStorage.getItem(SESSION_KEY));
         if (!user) return; // ログインしていなければ保存しない
 
         const key = HISTORY_KEY_PREFIX + user.id;
         const histories = JSON.parse(localStorage.getItem(key) || '[]');
-        
+
         const now = new Date();
-        const dateStr = now.getFullYear() + '/' + (now.getMonth()+1) + '/' + now.getDate() + ' ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+        const dateStr = now.getFullYear() + '/' + (now.getMonth() + 1) + '/' + now.getDate() + ' ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
 
         const newHistory = {
             id: Date.now(),
@@ -366,13 +329,13 @@ function saveHistory(data) {
             date: dateStr,
             title: `総合評価: ${data.overallScore}点`,
             summary: `場面: ${selectedScene} / 服装: ${selectedAttire}`,
-            details: data
+            detail: data
         };
-        
+
         histories.push(newHistory);
         localStorage.setItem(key, JSON.stringify(histories));
 
-    } catch(e) {
+    } catch (e) {
         console.error("Save history failed", e);
     }
 }
@@ -381,11 +344,11 @@ function saveHistory(data) {
 function displayResult(data) {
     analysisResultContainer.classList.remove('hidden');
 
-    const score = data.overallScore || 0; 
+    const score = data.overallScore || 0;
     overallScoreEl.textContent = score;
     sceneForScoreEl.textContent = `（${selectedScene} / ${selectedAttire} での評価）`;
 
-    scoreBenchmarkEl.classList.remove('bg-green-100', 'text-green-800', 'bg-yellow-100', 'text-yellow-800', 'bg-red-100', 'text-red-800'); 
+    scoreBenchmarkEl.classList.remove('bg-green-100', 'text-green-800', 'bg-yellow-100', 'text-yellow-800', 'bg-red-100', 'text-red-800');
     if (score >= 80) {
         scoreBenchmarkEl.textContent = '合格ライン (Excellent)';
         scoreBenchmarkEl.classList.add('bg-green-100', 'text-green-800');
@@ -402,7 +365,7 @@ function displayResult(data) {
     const scores = data.evaluation.map(item => item.score);
 
     if (myRadarChart) {
-        myRadarChart.destroy(); 
+        myRadarChart.destroy();
     }
     myRadarChart = new Chart(ctx, {
         type: 'radar',
@@ -438,42 +401,42 @@ function displayResult(data) {
 
     const comment = data.overallComment;
     analysisResult.innerHTML = `
-        <div class="bg-green-50 border border-green-200 rounded-2xl p-6">
-            <h3 class="text-green-800 flex items-center gap-2 font-bold mb-2">
-                <i data-lucide="check-circle" class="w-5 h-5"></i> 良い点 (Good Points)
-            </h3>
-            <p class="text-green-700 leading-relaxed">${comment.goodPoints.replace(/\n/g, '<br>')}</p>
-        </div>
-        
-        <div class="bg-yellow-50 border border-yellow-200 rounded-2xl p-6">
-            <h3 class="text-yellow-800 flex items-center gap-2 font-bold mb-2">
-                <i data-lucide="alert-triangle" class="w-5 h-5"></i> 改善提案 (Suggestions)
-            </h3>
-            <p class="text-yellow-700 leading-relaxed">${comment.suggestions.replace(/\n/g, '<br>')}</p>
-        </div>
-        
-        <div class="bg-white border border-slate-200 rounded-2xl p-6">
-            <h3 class="text-slate-800 flex items-center gap-2 font-bold mb-2">
-                <i data-lucide="lightbulb" class="w-5 h-5"></i> 総評 (Summary)
-            </h3>
-            <p class="text-slate-600 leading-relaxed">${comment.summary.replace(/\n/g, '<br>')}</p>
-        </div>
-        
-        <div class="mt-8">
-            <h3 class="text-slate-800 font-bold mb-4 flex items-center gap-2"><i data-lucide="list" class="w-5 h-5"></i> 項目別詳細</h3>
-            <div class="space-y-3">
-                ${data.evaluation.map(item => `
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="font-bold text-slate-700">${item.item}</span>
-                            <span class="font-bold text-indigo-600">${item.score}/5</span>
-                        </div>
-                        <p class="text-sm text-slate-600">${item.comment}</p>
+                <div class="bg-green-50 border border-green-200 rounded-2xl p-6">
+                    <h3 class="text-green-800 flex items-center gap-2 font-bold mb-2">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i> 良い点 (Good Points)
+                    </h3>
+                    <p class="text-green-700 leading-relaxed">${comment.goodPoints.replace(/\n/g, '<br>')}</p>
+                </div>
+                
+                <div class="bg-yellow-50 border border-yellow-200 rounded-2xl p-6">
+                    <h3 class="text-yellow-800 flex items-center gap-2 font-bold mb-2">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i> 改善提案 (Suggestions)
+                    </h3>
+                    <p class="text-yellow-700 leading-relaxed">${comment.suggestions.replace(/\n/g, '<br>')}</p>
+                </div>
+                
+                <div class="bg-white border border-slate-200 rounded-2xl p-6">
+                    <h3 class="text-slate-800 flex items-center gap-2 font-bold mb-2">
+                        <i data-lucide="lightbulb" class="w-5 h-5"></i> 総評 (Summary)
+                    </h3>
+                    <p class="text-slate-600 leading-relaxed">${comment.summary.replace(/\n/g, '<br>')}</p>
+                </div>
+                
+                <div class="mt-8">
+                    <h3 class="text-slate-800 font-bold mb-4 flex items-center gap-2"><i data-lucide="list" class="w-5 h-5"></i> 項目別詳細</h3>
+                    <div class="space-y-3">
+                        ${data.evaluation.map(item => `
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-bold text-slate-700">${item.item}</span>
+                                    <span class="font-bold text-indigo-600">${item.score}/5</span>
+                                </div>
+                                <p class="text-sm text-slate-600">${item.comment}</p>
+                            </div>
+                        `).join('')}
                     </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
+                </div>
+            `;
     lucide.createIcons();
 }
 
@@ -488,26 +451,8 @@ function hideError() {
 
 // --- APIリトライ ---
 async function fetchWithBackoff(url, options, maxRetries = 3, baseDelay = 1000) {
-    let attempt = 0;
-    while (attempt < maxRetries) {
-        try {
-            const response = await fetch(url, options);
-            if (response.ok) return response;
-            if (response.status === 429) {
-                const delay = baseDelay * Math.pow(2, attempt);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                attempt++;
-            } else {
-                return response;
-            }
-        } catch (error) {
-            if (attempt + 1 >= maxRetries) throw error;
-            const delay = baseDelay * Math.pow(2, attempt);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            attempt++;
-        }
-    }
-    throw new Error('API request failed after all retries.');
+    // Mock implementation doesn't use this, but kept for compatibility if needed later.
+    return;
 }
 
 // --- 初期化 ---
