@@ -475,82 +475,100 @@ function saveHistory(data, companyName) {
     }
 }
 
+// --- 画面描画関数 ---
 function renderResult(result, companyName) {
     // 画像パスの決定
     const imagePath = categoryImages[topCategory];
 
+    // Main layout with CSS Grid
     bunsekiContent.innerHTML = `
-                <div class="bunseki-card w-full max-w-4xl mx-auto p-8 md:p-12 fade-in">
-                    <div class="text-center mb-12">
-                        <p class="text-sm font-bold text-blue-600 tracking-widest uppercase mb-3">ANALYSIS RESULT</p>
-                        <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-6">あなたの最大の武器</h1>
-                        
-                        <div class="mb-8">
-                            <img src="${imagePath}" alt="${result.category}" class="w-full max-w-md mx-auto rounded-3xl shadow-lg transform transition hover:scale-105 duration-500">
-                        </div>
+        <div class="bunseki-card w-full max-w-7xl mx-auto p-6 md:p-10 fade-in">
+            <!-- Header Section -->
+            <div class="text-center mb-10 border-b border-slate-100 pb-8">
+                <p class="text-sm font-bold text-blue-600 tracking-widest uppercase mb-3">ANALYSIS RESULT</p>
+                <h1 class="text-3xl md:text-4xl font-bold text-slate-900">あなたの最大の武器</h1>
+            </div>
 
-
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+                
+                <!-- Left Column: Visuals & Core Stats (4 cols) -->
+                <div class="lg:col-span-5 flex flex-col gap-8">
+                    <!-- Main Image Character -->
+                    <div class="relative group">
+                         <div class="absolute -inset-1 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                        <img src="${imagePath}" alt="${result.category}" class="relative w-full object-contain rounded-[2rem] shadow-sm bg-white border border-slate-100 p-4 transform transition hover:scale-[1.02] duration-500">
                     </div>
 
-                    <div class="bg-blue-50 border border-blue-100 rounded-3xl p-8 mb-12 text-center">
-                        <h3 class="text-lg font-bold text-blue-900 mb-3 flex items-center justify-center gap-2">
-                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    <!-- Radar Chart -->
+                    <div class="bg-slate-50 rounded-3xl p-6 border border-slate-100">
+                        <h2 class="text-lg font-bold text-slate-700 mb-4 text-center">基礎力バランス</h2>
+                        <div class="aspect-square relative w-full">
+                            <canvas id="resultRadarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Detailed Analysis (8 cols) -->
+                <div class="lg:col-span-7 flex flex-col gap-6">
+                    
+                    <!-- Industry Fit (Highlight) -->
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-3xl p-8 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 text-blue-900">
+                             <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2 relative z-10">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                             ${companyName} への適性
                         </h3>
-                        <p class="text-blue-800 leading-relaxed font-medium text-lg">
+                        <p class="text-blue-900 leading-relaxed font-medium text-lg relative z-10">
                             ${result.industryFit}
                         </p>
                     </div>
 
-                    <!-- Chart Section -->
-                    <div class="bg-slate-50 rounded-3xl p-8 border border-slate-100 mb-12">
-                        <h2 class="text-xl font-bold text-slate-700 mb-6 text-center">基礎力バランス</h2>
-                        <div class="aspect-video relative max-w-3xl mx-auto">
-                            <canvas id="resultRadarChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Cards Section (Vertical Stack) -->
-                    <div class="flex flex-col gap-8 mb-12">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Direction -->
-                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:border-blue-200 transition-colors">
-                            <h3 class="font-bold text-slate-900 mb-3 flex items-center">
-                                <div class="p-1.5 bg-blue-100 rounded-lg mr-3 text-blue-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></div>
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                            <h3 class="font-bold text-slate-900 mb-3 flex items-center text-lg">
+                                <div class="p-2 bg-blue-100 rounded-lg mr-3 text-blue-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></div>
                                 アピールの方向性
                             </h3>
-                            <p class="text-slate-600 leading-relaxed">${result.direction}</p>
+                            <p class="text-slate-600 leading-relaxed text-sm">${result.direction}</p>
                         </div>
 
                         <!-- Advice -->
-                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:border-indigo-200 transition-colors">
-                            <h3 class="font-bold text-slate-900 mb-3 flex items-center">
-                                <div class="p-1.5 bg-indigo-100 rounded-lg mr-3 text-indigo-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                             <h3 class="font-bold text-slate-900 mb-3 flex items-center text-lg">
+                                <div class="p-2 bg-indigo-100 rounded-lg mr-3 text-indigo-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
                                 プロのアドバイス
                             </h3>
-                            <ul class="list-disc list-inside text-slate-600 leading-relaxed">
+                            <ul class="list-disc list-inside text-slate-600 leading-relaxed text-sm space-y-1">
                                 ${result.advice.map(a => `<li>${a}</li>`).join('')}
                             </ul>
                         </div>
                     </div>
 
-                    <div class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-3xl p-8 md:p-10 border border-blue-100 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 p-6 opacity-5">
-                                <svg class="w-32 h-32 text-blue-900" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
-                        </div>
-                        <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center relative z-10">
+                    <!-- Example (Full width in right col) -->
+                    <div class="bg-slate-50 rounded-3xl p-8 border border-slate-200">
+                         <h2 class="text-xl font-bold text-slate-900 mb-4 flex items-center">
                             <svg class="lucide lucide-edit w-6 h-6 inline-block mr-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             自己PR例文
                         </h2>
-                        <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white shadow-sm text-slate-700 leading-relaxed relative z-10 text-lg">
+                        <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm text-slate-700 leading-relaxed">
                             ${result.example}
                         </div>
                     </div>
 
-                    <button id="restartButton" class="w-full mt-12 text-lg font-semibold bg-slate-100 text-slate-700 py-4 px-8 rounded-xl hover:bg-slate-200 transition-colors">
-                        もう一度診断する
-                    </button>
                 </div>
-            `;
+            </div>
+
+            <div class="mt-12 text-center">
+                 <button id="restartButton" class="inline-flex items-center justify-center text-lg font-bold bg-slate-800 text-white py-4 px-12 rounded-full hover:bg-slate-700 hover:shadow-lg transition-all transform hover:-translate-y-1">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    もう一度診断する
+                </button>
+            </div>
+        </div>
+    `;
 
     // ★ ロジック変更: 7段階評価に対応 & 1.5乗計算でマイルドに ★
 
@@ -604,7 +622,7 @@ function renderResult(result, companyName) {
                     suggestedMax: suggestedMax,
                     ticks: { display: false },
                     pointLabels: {
-                        font: { size: 14, family: 'Noto Sans JP', weight: 'bold' },
+                        font: { size: 12, family: 'Noto Sans JP', weight: 'bold' },
                         color: '#475569'
                     }
                 }

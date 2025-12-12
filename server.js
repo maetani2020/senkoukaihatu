@@ -108,7 +108,7 @@ app.post('/api/mensetu/summary', async (req, res) => {
         const { history } = req.body;
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: "gemini-2.0-flash-lite-001",
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: mensetuSummarySchema
@@ -160,7 +160,7 @@ app.post('/api/sindan', async (req, res) => {
         const { element, category, userProfile } = req.body;
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: "gemini-2.0-flash-lite-001",
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: sindanSchema
@@ -213,7 +213,7 @@ app.post('/api/mensetu', async (req, res) => {
         const { history, interviewerType, userMessage } = req.body;
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: "gemini-2.0-flash-lite-001",
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: mensetuSchema
@@ -278,7 +278,7 @@ app.post('/api/camera', async (req, res) => {
         const { imageBase64, scene, attire } = req.body;
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: "gemini-2.0-flash-lite-001",
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: cameraSchema
