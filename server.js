@@ -212,6 +212,7 @@ app.post('/api/mensetu', async (req, res) => {
     try {
         const { history, interviewerType, userMessage } = req.body;
 
+
         const model = genAI.getGenerativeModel({
             model: "gemini-2.0-flash-lite-001",
             generationConfig: {
@@ -234,6 +235,49 @@ app.post('/api/mensetu', async (req, res) => {
             // If history starts with model, prepend a dummy user message or remove it. 
             // In this context, it's safer to pretend the user started the conversation.
             validHistory = [{ role: 'user', parts: [{ text: "面接を始めてください。" }] }, ...validHistory];
+
+    const responseSchema = {
+      type: "OBJECT",
+      properties: {
+        scene: { type: "STRING" },
+        evaluation: { type: "ARRAY", items: { type: "OBJECT", properties: { item: { type: "STRING" }, score: { type: "NUMBER" }, comment: { type: "STRING" } } } },
+        overallScore: { type: "NUMBER" },
+        overallComment: { type: "OBJECT", properties: { goodPoints: { type: "STRING" }, suggestions: { type: "STRING" }, summary: { type: "STRING" } } }
+      }
+    };
+
+    // 評価基準をプロンプトとして定義
+    const systemPrompt = `
+あなたはプロのビジネスファッションコンサルタントです。
+ユーザーから提供された画像を分析し、指定された「ビジネスシーン」において、その服装が適切かどうかを厳しく評価してください。
+
+以下の5つの具体的な評価項目について、それぞれ1点から5点の5段階で評価を行い（5が最高、1が最低）、その理由や改善点をコメントしてください。
+
+【評価項目】
+1. 清潔感: シワ、汚れ、サイズ感（大きすぎず小さすぎず）、着こなしの乱れがないか。
+2. 服装の色: ビジネスシーンに相応しい落ち着いた色使いか、派手すぎないか、配色のバランスは適切か。
+3. 基本ルール（ジャケット＋襟付きシャツ）: ビジネスの基本であるジャケットと襟付きシャツを着用しているか。あるいはシーンに応じた同等の正装か。
+4. 季節感: 素材や色味、組み合わせが季節や指定されたシーンに適しているか。
+5. 柄: ビジネスにふさわしい柄か（無地、ストライプ、チェックなど）。派手すぎたり、カジュアルすぎたりしないか。
+
+【出力要件】
+指定されたJSONスキーマに従って出力してください。
+- overallScoreは100点満点で採点してください。
+- evaluation配列には上記5項目の評価を順に格納してください。
+- overallCommentには、良い点(goodPoints)、改善提案(suggestions)、総評(summary)を含めてください。
+`;
+
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
+
+    const payload = {
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: `この服装を「${scene}」で、範囲「${area}」で評価してください。` },
+            { inlineData: { mimeType: mimeType, data: base64Image } }
+          ]
+>>>
         }
 
         const chat = model.startChat({
