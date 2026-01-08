@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const { GoogleGenerativeAI, SchemaType } = require('@google/generative-ai');
 require('dotenv').config();
 
 const app = express();
@@ -10,195 +9,78 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// Gemini Configuration
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
 // Serve static files
 app.use(express.static('.'));
 
-// --- Schemas ---
-
-const sindanSchema = {
-    type: SchemaType.OBJECT,
-    properties: {
-        industryFit: { type: SchemaType.STRING },
-        direction: { type: SchemaType.STRING },
-        example: { type: SchemaType.STRING },
-        advice: {
-            type: SchemaType.ARRAY,
-            items: { type: SchemaType.STRING }
-        }
-    },
-    required: ["industryFit", "direction", "example", "advice"]
-};
-
-const mensetuSchema = {
-    type: SchemaType.OBJECT,
-    properties: {
-        feedback: { type: SchemaType.STRING },
-        nextQuestion: { type: SchemaType.STRING }
-    },
-    required: ["feedback", "nextQuestion"]
-};
-
-const cameraSchema = {
-    type: SchemaType.OBJECT,
-    properties: {
-        overallScore: { type: SchemaType.INTEGER },
-        evaluation: {
-            type: SchemaType.ARRAY,
-            items: {
-                type: SchemaType.OBJECT,
-                properties: {
-                    item: { type: SchemaType.STRING },
-                    score: { type: SchemaType.INTEGER },
-                    comment: { type: SchemaType.STRING }
-                },
-                required: ["item", "score", "comment"]
-            }
+// Claude API呼び出し用のヘルパー関数
+async function callClaudeAPI(prompt, systemPrompt = '') {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01"
         },
-        overallComment: {
-            type: SchemaType.OBJECT,
-            properties: {
-                goodPoints: { type: SchemaType.STRING },
-                suggestions: { type: SchemaType.STRING },
-                summary: { type: SchemaType.STRING }
-            },
-            required: ["goodPoints", "suggestions", "summary"]
-        }
-    },
-    required: ["overallScore", "evaluation", "overallComment"]
-};
+        body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 4096,
+            system: systemPrompt,
+            messages: [
+                { role: "user", content: prompt }
+            ],
+        })
+    });
 
-const mensetuSummarySchema = {
-    type: SchemaType.OBJECT,
-    properties: {
-        overallScore: { type: SchemaType.NUMBER },
-        overallEvaluation: { type: SchemaType.STRING },
-        strengths: {
-            type: SchemaType.ARRAY,
-            items: { type: SchemaType.STRING }
-        },
-        weaknesses: {
-            type: SchemaType.ARRAY,
-            items: { type: SchemaType.STRING }
-        },
-        radarChart: {
-            type: SchemaType.OBJECT,
-            properties: {
-                skill: { type: SchemaType.NUMBER },
-                logical: { type: SchemaType.NUMBER },
-                enthusiasm: { type: SchemaType.NUMBER },
-                flexibility: { type: SchemaType.NUMBER },
-                knowledge: { type: SchemaType.NUMBER }
-            },
-            required: ["skill", "logical", "enthusiasm", "flexibility", "knowledge"]
-        },
-        interviewerComment: { type: SchemaType.STRING },
-        advice: { type: SchemaType.STRING }
-    },
-    required: ["overallScore", "overallEvaluation", "strengths", "weaknesses", "radarChart", "interviewerComment", "advice"]
-};
-
-// ... (Existing endpoints) ...
-
-// 4. 模擬面接総評 (Mensetu Summary)
-app.post('/api/mensetu/summary', async (req, res) => {
-    try {
-        const { history } = req.body;
-
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash-lite-001",
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: mensetuSummarySchema
-            }
-        });
-
-        const prompt = `
-        あなたはプロの面接官です。
-        以下の模擬面接の履歴全体を分析し、最終的な評価レポートを作成してください。
-
-        会話履歴:
-        ${JSON.stringify(history)}
-        `;
-
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-
-        console.log("Mensetu Summary API Response:", text);
-
-        try {
-            let jsonResponse = JSON.parse(text);
-            if (Array.isArray(jsonResponse)) {
-                jsonResponse = jsonResponse[0];
-            }
-            res.json(jsonResponse);
-        } catch (e) {
-            console.error("JSON Parse Error:", e);
-            res.status(500).json({ error: 'Failed to parse AI response' });
-        }
-
-    } catch (error) {
-        console.error('Error in /api/mensetu/summary:', error);
-
-        if (error.message && (error.message.includes('429') || error.message.includes('Quota'))) {
-            return res.status(429).json({
-                error: 'Quota exceeded. improved error handling',
-                message: 'アクセス集中等のため一時的に利用できません。少し時間を置いてから再度お試しください。',
-                retryAfter: 60
-            });
-        }
-        res.status(500).json({ error: error.message });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Claude API Error: ${errorData.error?.message || response.statusText}`);
     }
-});
 
+    const data = await response.json();
+    return data.content[0].text;
+}
 
+// 1. 自己診断 (Sindan)
 app.post('/api/sindan', async (req, res) => {
     try {
         const { element, category, userProfile } = req.body;
 
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash-lite-001",
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: sindanSchema
-            }
-        });
+        const systemPrompt = `あなたはプロのキャリアアドバイザーです。
+就活生の強みを分析し、志望企業へのアピール文とアドバイスを作成します。
+必ずJSON形式で以下の構造で回答してください:
+{
+  "industryFit": "業界適性の説明",
+  "direction": "方向性のアドバイス",
+  "example": "具体例",
+  "advice": ["アドバイス1", "アドバイス2", "アドバイス3"]
+}`;
 
-        let prompt = `
-        あなたはプロのキャリアアドバイザーです。
-        就活生の「${element}」（カテゴリ：${category}）という強みを分析し、
-        志望企業へのアピール文とアドバイスを作成してください。
+        const prompt = `
+就活生の「${element}」(カテゴリ:${category})という強みを分析し、
+志望企業へのアピール文とアドバイスを作成してください。
 
-        ユーザー情報:
-        ${userProfile ? JSON.stringify(userProfile) : '特になし'}
-        `;
+ユーザー情報:
+${userProfile ? JSON.stringify(userProfile) : '特になし'}
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+JSON形式で回答してください。
+`;
 
-        console.log("Sindan API Response:", text);
-
-        try {
-            let jsonResponse = JSON.parse(text);
-            // Handle array response if API wraps result
-            if (Array.isArray(jsonResponse)) {
-                jsonResponse = jsonResponse[0];
-            }
-            res.json(jsonResponse);
-        } catch (e) {
-            console.error("JSON Parse Error details:", text);
-            res.status(500).json({ error: 'Failed to parse AI response' });
+        const responseText = await callClaudeAPI(prompt, systemPrompt);
+        
+        // JSONの抽出(```json```で囲まれている場合に対応)
+        let jsonText = responseText.trim();
+        if (jsonText.includes('```json')) {
+            jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
         }
+        
+        const jsonResponse = JSON.parse(jsonText);
+        res.json(jsonResponse);
 
     } catch (error) {
         console.error('Error in /api/sindan:', error);
-        if (error.message && (error.message.includes('429') || error.message.includes('Quota'))) {
+        if (error.message && error.message.includes('429')) {
             return res.status(429).json({
-                error: 'Quota exceeded. improved error handling',
+                error: 'Rate limit exceeded',
                 message: 'アクセス集中等のため一時的に利用できません。少し時間を置いてから再度お試しください。',
                 retryAfter: 60
             });
@@ -212,102 +94,54 @@ app.post('/api/mensetu', async (req, res) => {
     try {
         const { history, interviewerType, userMessage } = req.body;
 
-
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash-lite-001",
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: mensetuSchema
-            }
-        });
-
         let systemPrompt = "あなたは面接官です。";
         if (interviewerType === 'strict') {
             systemPrompt += "厳しく、論理的な矛盾を指摘する圧迫面接気味のスタイルで話してください。";
         } else {
             systemPrompt += "優しく、相手の良さを引き出す穏やかなスタイルで話してください。";
         }
-        systemPrompt += "ユーザーの回答に対し、フィードバック（感想）と、次の質問をJSON形式で返してください。";
+        systemPrompt += `
+ユーザーの回答に対して、フィードバック(感想)と、次の質問をJSON形式で返してください。
+必ず以下の構造で回答してください:
+{
+  "feedback": "ユーザーの回答に対するフィードバック",
+  "nextQuestion": "次の質問"
+}`;
 
-        // History validation: Gemini requires history to start with 'user' role
-        let validHistory = history || [];
-        if (validHistory.length > 0 && validHistory[0].role !== 'user') {
-            // If history starts with model, prepend a dummy user message or remove it. 
-            // In this context, it's safer to pretend the user started the conversation.
-            validHistory = [{ role: 'user', parts: [{ text: "面接を始めてください。" }] }, ...validHistory];
-
-    const responseSchema = {
-      type: "OBJECT",
-      properties: {
-        scene: { type: "STRING" },
-        evaluation: { type: "ARRAY", items: { type: "OBJECT", properties: { item: { type: "STRING" }, score: { type: "NUMBER" }, comment: { type: "STRING" } } } },
-        overallScore: { type: "NUMBER" },
-        overallComment: { type: "OBJECT", properties: { goodPoints: { type: "STRING" }, suggestions: { type: "STRING" }, summary: { type: "STRING" } } }
-      }
-    };
-
-    // 評価基準をプロンプトとして定義
-    const systemPrompt = `
-あなたはプロのビジネスファッションコンサルタントです。
-ユーザーから提供された画像を分析し、指定された「ビジネスシーン」において、その服装が適切かどうかを厳しく評価してください。
-
-以下の5つの具体的な評価項目について、それぞれ1点から5点の5段階で評価を行い（5が最高、1が最低）、その理由や改善点をコメントしてください。
-
-【評価項目】
-1. 清潔感: シワ、汚れ、サイズ感（大きすぎず小さすぎず）、着こなしの乱れがないか。
-2. 服装の色: ビジネスシーンに相応しい落ち着いた色使いか、派手すぎないか、配色のバランスは適切か。
-3. 基本ルール（ジャケット＋襟付きシャツ）: ビジネスの基本であるジャケットと襟付きシャツを着用しているか。あるいはシーンに応じた同等の正装か。
-4. 季節感: 素材や色味、組み合わせが季節や指定されたシーンに適しているか。
-5. 柄: ビジネスにふさわしい柄か（無地、ストライプ、チェックなど）。派手すぎたり、カジュアルすぎたりしないか。
-
-【出力要件】
-指定されたJSONスキーマに従って出力してください。
-- overallScoreは100点満点で採点してください。
-- evaluation配列には上記5項目の評価を順に格納してください。
-- overallCommentには、良い点(goodPoints)、改善提案(suggestions)、総評(summary)を含めてください。
-`;
-
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
-
-    const payload = {
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: `この服装を「${scene}」で、範囲「${area}」で評価してください。` },
-            { inlineData: { mimeType: mimeType, data: base64Image } }
-          ]
->>>
+        // 履歴を文字列化
+        let historyText = '';
+        if (history && history.length > 0) {
+            historyText = '過去の会話:\n';
+            history.forEach(item => {
+                if (item.role === 'user') {
+                    historyText += `就活生: ${item.parts[0].text}\n`;
+                } else {
+                    historyText += `面接官: ${item.parts[0].text}\n`;
+                }
+            });
         }
 
-        const chat = model.startChat({
-            history: validHistory,
-        });
+        const prompt = `${historyText}
 
-        const msg = `${systemPrompt}\n\nユーザーの回答: ${userMessage}`;
+就活生の最新の回答: ${userMessage}
 
-        const result = await chat.sendMessage(msg);
-        const response = await result.response;
-        const text = response.text();
+上記を踏まえて、フィードバックと次の質問をJSON形式で返してください。`;
 
-        console.log("Mensetu API Response:", text);
-
-        try {
-            let jsonResponse = JSON.parse(text);
-            if (Array.isArray(jsonResponse)) {
-                jsonResponse = jsonResponse[0];
-            }
-            res.json(jsonResponse);
-        } catch (e) {
-            console.error("JSON Parse Error:", e);
-            res.status(500).json({ error: 'Failed to parse AI response' });
+        const responseText = await callClaudeAPI(prompt, systemPrompt);
+        
+        let jsonText = responseText.trim();
+        if (jsonText.includes('```json')) {
+            jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
         }
+        
+        const jsonResponse = JSON.parse(jsonText);
+        res.json(jsonResponse);
 
     } catch (error) {
         console.error('Error in /api/mensetu:', error);
-        if (error.message && (error.message.includes('429') || error.message.includes('Quota'))) {
+        if (error.message && error.message.includes('429')) {
             return res.status(429).json({
-                error: 'Quota exceeded. improved error handling',
+                error: 'Rate limit exceeded',
                 message: 'アクセス集中等のため一時的に利用できません。少し時間を置いてから再度お試しください。',
                 retryAfter: 60
             });
@@ -321,77 +155,164 @@ app.post('/api/camera', async (req, res) => {
     try {
         const { imageBase64, scene, attire } = req.body;
 
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash-lite-001",
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: cameraSchema
-            }
-        });
+        const systemPrompt = `あなたはプロの面接官・イメージコンサルタントです。
+就活生の服装画像を分析し、評価してください。
+必ずJSON形式で以下の構造で回答してください:
+{
+  "overallScore": 0,
+  "evaluation": [
+    {"item": "清潔感", "score": 5, "comment": "コメント"},
+    {"item": "TPO(場面)への適合度", "score": 5, "comment": "コメント"},
+    {"item": "サイズ感・着こなし", "score": 5, "comment": "コメント"},
+    {"item": "身だしなみ(髪型・表情)", "score": 5, "comment": "コメント"},
+    {"item": "全体の雰囲気・姿勢", "score": 5, "comment": "コメント"}
+  ],
+  "overallComment": {
+    "goodPoints": "良い点",
+    "suggestions": "改善提案",
+    "summary": "総評"
+  }
+}`;
 
         const prompt = `
-        あなたはプロの面接官・イメージコンサルタントです。
-        就活生の服装画像を分析し、評価してください。
+シチュエーション: ${scene}
+服装タイプ: ${attire}
 
-        シチュエーション: ${scene}
-        服装タイプ: ${attire}
+添付された就活生の服装画像を、以下の5つの項目について1～5点(5が良い)で評価し、コメントしてください:
+1. 清潔感
+2. TPO(場面)への適合度
+3. サイズ感・着こなし
+4. 身だしなみ(髪型・表情)
+5. 全体の雰囲気・姿勢
 
-        以下の5つの項目について、それぞれ1〜5点（5が良い）で評価し、コメントしてください。
-        1. 清潔感
-        2. TPO（場面）への適合度
-        3. サイズ感・着こなし
-        4. 身だしなみ（髪型・表情）
-        5. 全体の雰囲気・姿勢
+JSON形式で回答してください。
+`;
 
-        出力はJSON形式で行ってください。
-        `;
-
-        const imagePart = {
-            inlineData: {
-                data: imageBase64,
-                mimeType: "image/jpeg"
+        // Claude APIで画像を扱う場合
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": process.env.ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01"
             },
-        };
+            body: JSON.stringify({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 4096,
+                system: systemPrompt,
+                messages: [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "image",
+                                source: {
+                                    type: "base64",
+                                    media_type: "image/jpeg",
+                                    data: imageBase64
+                                }
+                            },
+                            {
+                                type: "text",
+                                text: prompt
+                            }
+                        ]
+                    }
+                ],
+            })
+        });
 
-        const result = await model.generateContent([prompt, imagePart]);
-        const response = await result.response;
-        const text = response.text();
-
-        console.log("Camera API Response:", text);
-
-        try {
-            let jsonResponse = JSON.parse(text);
-            if (Array.isArray(jsonResponse)) {
-                jsonResponse = jsonResponse[0];
-            }
-
-            // Calculate Overall Score based on evaluation items
-            // Max score = 5 items * 5 points = 25
-            // Convert to 100 scale: score * 4
-            if (jsonResponse.evaluation && Array.isArray(jsonResponse.evaluation)) {
-                let sum = 0;
-                let max = 0;
-                jsonResponse.evaluation.forEach(item => {
-                    sum += item.score || 0;
-                    max += 5;
-                });
-                // Avoid division by zero
-                if (max > 0) {
-                    jsonResponse.overallScore = Math.round((sum / max) * 100);
-                }
-            }
-
-            res.json(jsonResponse);
-        } catch (e) {
-            console.error("JSON Parse Error:", e);
-            res.status(500).json({ error: 'Failed to parse AI response' });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Claude API Error: ${errorData.error?.message || response.statusText}`);
         }
+
+        const data = await response.json();
+        let responseText = data.content[0].text;
+
+        let jsonText = responseText.trim();
+        if (jsonText.includes('```json')) {
+            jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+        }
+
+        let jsonResponse = JSON.parse(jsonText);
+
+        // Overall Scoreの計算
+        if (jsonResponse.evaluation && Array.isArray(jsonResponse.evaluation)) {
+            let sum = 0;
+            let max = 0;
+            jsonResponse.evaluation.forEach(item => {
+                sum += item.score || 0;
+                max += 5;
+            });
+            if (max > 0) {
+                jsonResponse.overallScore = Math.round((sum / max) * 100);
+            }
+        }
+
+        res.json(jsonResponse);
 
     } catch (error) {
         console.error('Error in /api/camera:', error);
-        if (error.message && (error.message.includes('429') || error.message.includes('Quota'))) {
+        if (error.message && error.message.includes('429')) {
             return res.status(429).json({
-                error: 'Quota exceeded. improved error handling',
+                error: 'Rate limit exceeded',
+                message: 'アクセス集中等のため一時的に利用できません。少し時間を置いてから再度お試しください。',
+                retryAfter: 60
+            });
+        }
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 4. 模擬面接総評 (Mensetu Summary)
+app.post('/api/mensetu/summary', async (req, res) => {
+    try {
+        const { history } = req.body;
+
+        const systemPrompt = `あなたはプロの面接官です。
+模擬面接の履歴全体を分析し、最終的な評価レポートを作成してください。
+必ずJSON形式で以下の構造で回答してください:
+{
+  "overallScore": 85.5,
+  "overallEvaluation": "総合評価",
+  "strengths": ["強み1", "強み2", "強み3"],
+  "weaknesses": ["弱み1", "弱み2"],
+  "radarChart": {
+    "skill": 4.5,
+    "logical": 4.0,
+    "enthusiasm": 5.0,
+    "flexibility": 3.5,
+    "knowledge": 4.0
+  },
+  "interviewerComment": "面接官からのコメント",
+  "advice": "今後のアドバイス"
+}`;
+
+        const prompt = `
+以下の模擬面接の会話履歴全体を分析し、最終的な評価レポートを作成してください。
+
+会話履歴:
+${JSON.stringify(history, null, 2)}
+
+JSON形式で回答してください。
+`;
+
+        const responseText = await callClaudeAPI(prompt, systemPrompt);
+        
+        let jsonText = responseText.trim();
+        if (jsonText.includes('```json')) {
+            jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+        }
+        
+        const jsonResponse = JSON.parse(jsonText);
+        res.json(jsonResponse);
+
+    } catch (error) {
+        console.error('Error in /api/mensetu/summary:', error);
+        if (error.message && error.message.includes('429')) {
+            return res.status(429).json({
+                error: 'Rate limit exceeded',
                 message: 'アクセス集中等のため一時的に利用できません。少し時間を置いてから再度お試しください。',
                 retryAfter: 60
             });
