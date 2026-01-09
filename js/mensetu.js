@@ -409,32 +409,7 @@ function removeMessage(id) {
 }
 
 // --- 履歴保存 (home.htmlと共通ロジック) ---
-function saveHistory(title, summary, detail = null) {
-    try {
-        const SESSION_KEY = 'career_app_session';
-        const HISTORY_KEY_PREFIX = 'career_app_history_';
-
-        const user = JSON.parse(localStorage.getItem(SESSION_KEY));
-        if (!user) return;
-
-        const key = HISTORY_KEY_PREFIX + user.id;
-        const histories = JSON.parse(localStorage.getItem(key) || '[]');
-
-        const now = new Date();
-        const dateStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-        const newHistory = {
-            id: Date.now(),
-            type: 'interview', // 新しいタイプ
-            date: dateStr,
-            title: title,
-            summary: summary,
-            detail: detail // 詳細データを保存
-        };
-
-        histories.push(newHistory);
-        localStorage.setItem(key, JSON.stringify(histories));
-    } catch (e) {
-        console.error("Save history failed", e);
-    }
+// --- 履歴保存 (Auth経由) ---
+async function saveHistory(title, summary, detail = null) {
+    await Auth.addHistory('interview', title, summary, detail);
 }

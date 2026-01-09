@@ -29,13 +29,9 @@ const categoryImages = {
     resilience: 'image/seisin.png'
 };
 
-// --- プロフィール取得 ---
+// --- プロフィール取得 (Auth経由) ---
 function getProfile() {
-    const SESSION_KEY = 'career_app_session';
-    const PROFILE_KEY_PREFIX = 'career_app_profile_';
-    const user = JSON.parse(localStorage.getItem(SESSION_KEY));
-    if (!user) return null;
-    return JSON.parse(localStorage.getItem(PROFILE_KEY_PREFIX + user.id));
+    return Auth.getProfile();
 }
 
 // --- 質問データ (STEP1: 15問) ---
@@ -443,36 +439,13 @@ async function callGeminiApi(finalElement) {
 }
 
 // ★ 履歴保存関数 ★
-function saveHistory(data, companyName) {
-    try {
-        const SESSION_KEY = 'career_app_session';
-        const HISTORY_KEY_PREFIX = 'career_app_history_';
+// ★ 履歴保存関数 (Auth経由) ★
+async function saveHistory(data, companyName) {
+    const title = `強み：${data.element}`;
+    const summary = `対象: ${companyName} / カテゴリ: ${data.category}`;
+    const detail = { ...data, scores: stage1Scores };
 
-        const user = JSON.parse(localStorage.getItem(SESSION_KEY));
-        if (!user) return; // ログインしていなければ保存しない
-
-        const key = HISTORY_KEY_PREFIX + user.id;
-        const histories = JSON.parse(localStorage.getItem(key) || '[]');
-
-        const now = new Date();
-        const dateStr = now.getFullYear() + '/' + (now.getMonth() + 1) + '/' + now.getDate() + ' ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
-
-        const newHistory = {
-            id: Date.now(),
-            type: 'sindan',
-            date: dateStr,
-            title: `強み：${data.element}`,
-            summary: `対象: ${companyName} / カテゴリ: ${data.category}`,
-            detail: { ...data, scores: stage1Scores }
-        };
-
-        histories.push(newHistory);
-        localStorage.setItem(key, JSON.stringify(histories));
-        console.log("History saved");
-
-    } catch (e) {
-        console.error("Save history failed", e);
-    }
+    await Auth.addHistory('sindan', title, summary, detail);
 }
 
 // --- 画面描画関数 ---

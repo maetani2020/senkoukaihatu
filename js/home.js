@@ -61,88 +61,26 @@ document.addEventListener('click', (e) => {
 });
 
 // --- ロジック ---
-const Auth = {
-    KEY: 'career_app_users',
-    SESSION_KEY: 'career_app_session',
-    HISTORY_KEY_PREFIX: 'career_app_history_',
-    PROFILE_KEY_PREFIX: 'career_app_profile_',
+// Auth object is now loaded from js/auth.js
 
-    getUsers() { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); },
+// 初期化
+Auth.updateUI = function () { // Extend/Override updateUI specific to home page elements
+    const user = this.getCurrentUser();
+    const authButtons = document.getElementById('authButtons');
+    const userMenu = document.getElementById('userMenu');
+    const userNameDisplay = document.getElementById('userNameDisplay');
+    const userAvatar = document.getElementById('userAvatar');
+    const userEmailDisplay = document.getElementById('userEmailDisplay');
 
-    register(name, email, password) {
-        const users = this.getUsers();
-        if (users.find(u => u.email === email)) { alert('このメールアドレスは既に登録されています。'); return false; }
-        const newUser = { id: Date.now().toString(), name, email, password };
-        users.push(newUser);
-        localStorage.setItem(this.KEY, JSON.stringify(users));
-        this.login(email, password);
-        return true;
-    },
-
-    login(email, password) {
-        const users = this.getUsers();
-        const user = users.find(u => u.email === email && u.password === password);
-        if (user) {
-            const sessionUser = { ...user };
-            delete sessionUser.password;
-            localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionUser));
-            this.updateUI();
-            return true;
-        } else {
-            alert('メールアドレスまたはパスワードが間違っています。');
-            return false;
-        }
-    },
-
-    logout() {
-        localStorage.removeItem(this.SESSION_KEY);
-        if (userDropdown) userDropdown.classList.add('hidden');
-        this.updateUI();
-        alert('ログアウトしました。');
-    },
-
-    getCurrentUser() { return JSON.parse(localStorage.getItem(this.SESSION_KEY)); },
-
-    getHistory() {
-        const user = this.getCurrentUser();
-        if (!user) return [];
-        const key = this.HISTORY_KEY_PREFIX + user.id;
-        return JSON.parse(localStorage.getItem(key) || '[]');
-    },
-
-    saveProfile(profileData) {
-        const user = this.getCurrentUser();
-        if (!user) return false;
-        const key = this.PROFILE_KEY_PREFIX + user.id;
-        localStorage.setItem(key, JSON.stringify(profileData));
-        return true;
-    },
-
-    getProfile() {
-        const user = this.getCurrentUser();
-        if (!user) return null;
-        const key = this.PROFILE_KEY_PREFIX + user.id;
-        return JSON.parse(localStorage.getItem(key));
-    },
-
-    updateUI() {
-        const user = this.getCurrentUser();
-        const authButtons = document.getElementById('authButtons');
-        const userMenu = document.getElementById('userMenu');
-        const userNameDisplay = document.getElementById('userNameDisplay');
-        const userAvatar = document.getElementById('userAvatar');
-        const userEmailDisplay = document.getElementById('userEmailDisplay');
-
-        if (user) {
-            if (authButtons) authButtons.classList.add('hidden');
-            if (userMenu) userMenu.classList.remove('hidden');
-            if (userNameDisplay) userNameDisplay.textContent = user.name;
-            if (userEmailDisplay) userEmailDisplay.textContent = user.email;
-            if (userAvatar) userAvatar.textContent = user.name.charAt(0).toUpperCase();
-        } else {
-            if (authButtons) authButtons.classList.remove('hidden');
-            if (userMenu) userMenu.classList.add('hidden');
-        }
+    if (user) {
+        if (authButtons) authButtons.classList.add('hidden');
+        if (userMenu) userMenu.classList.remove('hidden');
+        if (userNameDisplay) userNameDisplay.textContent = user.name;
+        if (userEmailDisplay) userEmailDisplay.textContent = user.email;
+        if (userAvatar) userAvatar.textContent = user.name.charAt(0).toUpperCase();
+    } else {
+        if (authButtons) authButtons.classList.remove('hidden');
+        if (userMenu) userMenu.classList.add('hidden');
     }
 };
 
@@ -169,7 +107,7 @@ if (profileBtn) {
 }
 
 if (saveProfileBtn) {
-    saveProfileBtn.addEventListener('click', () => {
+    saveProfileBtn.addEventListener('click', async () => {
         const profileData = {
             industry: profIndustry ? profIndustry.value : '',
             role: profRole ? profRole.value : '',
@@ -177,7 +115,7 @@ if (saveProfileBtn) {
             persona: profPersona ? profPersona.value : ''
         };
 
-        if (Auth.saveProfile(profileData)) {
+        if (await Auth.saveProfile(profileData)) {
             profileModalCtrl.close();
             alert('プロフィールを保存しました。\n診断や面接でこの情報が活用されます。');
         } else {
@@ -190,8 +128,8 @@ if (saveProfileBtn) {
 const detailModalCtrl = setupModal(null, 'detailModal', 'detailContent', 'detailOverlay', 'detailModalWrapper', ['closeDetailBtn', 'closeDetailBtnBottom']);
 let detailChart = null;
 
-function renderHistory() {
-    const histories = Auth.getHistory();
+async function renderHistory() {
+    const histories = await Auth.getHistory();
     historyList.innerHTML = '';
 
     if (histories.length === 0) {
@@ -613,12 +551,12 @@ function toggleAuthMode(mode) {
 document.getElementById('showRegisterLink').addEventListener('click', () => toggleAuthMode('register'));
 document.getElementById('showLoginLink').addEventListener('click', () => toggleAuthMode('login'));
 
-document.getElementById('doRegisterBtn').addEventListener('click', () => {
+document.getElementById('doRegisterBtn').addEventListener('click', async () => {
     const name = document.getElementById('regName').value;
     const email = document.getElementById('regEmail').value;
     const pass = document.getElementById('regPassword').value;
     if (name && email && pass) {
-        if (Auth.register(name, email, pass)) {
+        if (await Auth.register(name, email, pass)) {
             authModalCtrl.close();
             document.getElementById('regName').value = '';
             document.getElementById('regEmail').value = '';
@@ -627,11 +565,11 @@ document.getElementById('doRegisterBtn').addEventListener('click', () => {
     } else { alert('すべての項目を入力してください。'); }
 });
 
-document.getElementById('doLoginBtn').addEventListener('click', () => {
+document.getElementById('doLoginBtn').addEventListener('click', async () => {
     const email = document.getElementById('loginEmail').value;
     const pass = document.getElementById('loginPassword').value;
     if (email && pass) {
-        if (Auth.login(email, pass)) {
+        if (await Auth.login(email, pass)) {
             authModalCtrl.close();
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
@@ -643,6 +581,11 @@ document.getElementById('logoutBtn').addEventListener('click', () => { Auth.logo
 
 // 初期化
 Auth.updateUI();
+
+// Start Migration Check on load
+document.addEventListener('DOMContentLoaded', () => {
+    Auth.checkMigration();
+});
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {

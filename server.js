@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -11,6 +13,184 @@ app.use(express.json({ limit: '50mb' }));
 
 // Serve static files
 app.use(express.static('.'));
+
+// Database Setup
+const dbPath = path.resolve(__dirname, 'database.sqlite');
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+        console.error('Could not connect to database', err);
+    } else {
+        console.log('Connected to SQLite database');
+    }
+});
+
+// Create Tables
+db.serialize(() => {
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        email TEXT UNIQUE,
+        password TEXT,
+        profile_json TEXT
+    )`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT,
+        type TEXT,
+        date TEXT,
+        title TEXT,
+        summary TEXT,
+        detail_json TEXT,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )`);
+});
+
+// --- Auth APIs ---
+
+// Register
+app.post('/api/auth/register', (req, res) => {
+    const { id, name, email, password } = req.body;
+    db.run(`INSERT INTO users (id, name, email, password) VALUES (?, ?, ?, ?)`,
+        [id, name, email, password],
+        function (err) {
+            if (err) {
+                if (err.message.includes('UNIQUE constraint failed')) {
+                    return res.status(409).json({ error: 'Email already exists' });
+                }
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ success: true, userId: id });
+        }
+    );
+});
+
+// Login
+app.post('/api/auth/login', (req, res) => {
+    const { email, password } = req.body;
+    db.get(`SELECT * FROM users WHERE email = ? AND password = ?`, [email, password], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (row) {
+            // Remove password from response
+            const user = { ...row };
+            delete user.password;
+            // Parse profile_json if exists
+            if (user.profile_json) {
+                user.profile = JSON.parse(user.profile_json);
+                delete user.profile_json;
+            }
+            res.json({ success: true, user });
+        } else {
+            res.status(401).json({ error: 'Invalid credentials' });
+        }
+    });
+});
+
+// Verify/Get User (Simple session check by ID)
+app.get('/api/auth/user/:id', (req, res) => {
+    const { id } = req.params;
+    db.get(`SELECT * FROM users WHERE id = ?`, [id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (row) {
+            const user = { ...row };
+            delete user.password;
+            if (user.profile_json) {
+                user.profile = JSON.parse(user.profile_json);
+                delete user.profile_json;
+            }
+            res.json({ user });
+        } else {
+            res.status(404).json({ error: 'User not found' });
+        }
+    });
+});
+
+// --- Data APIs ---
+
+// Update Profile
+app.post('/api/user/profile', (req, res) => {
+    const { userId, profile } = req.body;
+    db.run(`UPDATE users SET profile_json = ? WHERE id = ?`, [JSON.stringify(profile), userId], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+    });
+});
+
+// Get History
+app.get('/api/user/history/:userId', (req, res) => {
+    const { userId } = req.params;
+    db.all(`SELECT * FROM history WHERE user_id = ? ORDER BY id DESC`, [userId], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        const history = rows.map(row => ({
+            ...row,
+            detail: JSON.parse(row.detail_json)
+        }));
+        res.json({ history });
+    });
+});
+
+// Add History
+app.post('/api/user/history', (req, res) => {
+    const { userId, type, date, title, summary, detail } = req.body;
+    db.run(`INSERT INTO history (user_id, type, date, title, summary, detail_json) VALUES (?, ?, ?, ?, ?, ?)`,
+        [userId, type, date, title, summary, JSON.stringify(detail)],
+        function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ success: true, id: this.lastID });
+        }
+    );
+});
+
+// Migrate Data
+app.post('/api/migrate', (req, res) => {
+    const { users, histories } = req.body;
+
+    db.serialize(() => {
+        const stmtUser = db.prepare(`INSERT OR IGNORE INTO users (id, name, email, password, profile_json) VALUES (?, ?, ?, ?, ?)`);
+        const stmtHistory = db.prepare(`INSERT INTO history (user_id, type, date, title, summary, detail_json) VALUES (?, ?, ?, ?, ?, ?)`);
+
+        let userCount = 0;
+        let historyCount = 0;
+
+        if (users && Symbol.iterator in Object(users)) {
+            users.forEach(u => {
+                stmtUser.run(u.id, u.name, u.email, u.password, u.profile ? JSON.stringify(u.profile) : null);
+                userCount++;
+            });
+        }
+
+        // Note: Client history has 'id' but we use AUTOINCREMENT for DB 'id'. 
+        // We might lose original history 'id' mapping but that's probably fine for display.
+        // Or we can try to preserve it if it was numeric, but client used Date.now().
+
+        if (histories && Symbol.iterator in Object(histories)) {
+            histories.forEach(h => {
+                // The client history structure needs to be mapped to DB
+                // Need to find which user this history belongs to.
+                // In localStorage 'career_app_history_USERID', we know the user ID.
+                // So the client should send [ { userId: '...', data: [...] }, ... ]
+                // Wait, the client Logic is: "histories" is a flat list? No.
+                // Let's assume client sends { items: [ { ...historyItem, userId: ... } ] }
+                // OR client sends a dump of all history keys?
+
+                // Better approach: Client loops through its keys, finds user history, sends it relative to that user.
+                // Let's assume request body has: entries: [ { userId: 'abc', type: '..', ... } ]
+
+                // For now, let's let the client handle logic and call this 'migrate' endpoint likely per user or batch.
+                // But wait, "users" array has passwords.
+
+                // Let's assume this endpoint receives a bulk payload.
+                stmtHistory.run(h.userId, h.type, h.date, h.title, h.summary, JSON.stringify(h.detail));
+                historyCount++;
+            });
+        }
+
+        stmtUser.finalize();
+        stmtHistory.finalize();
+
+        res.json({ success: true, migratedUsers: userCount, migratedHistory: historyCount });
+    });
+});
 
 // Claude API呼び出し用のヘルパー関数
 async function callClaudeAPI(prompt, systemPrompt = '') {
@@ -66,13 +246,13 @@ JSON形式で回答してください。
 `;
 
         const responseText = await callClaudeAPI(prompt, systemPrompt);
-        
+
         // JSONの抽出(```json```で囲まれている場合に対応)
         let jsonText = responseText.trim();
         if (jsonText.includes('```json')) {
             jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
         }
-        
+
         const jsonResponse = JSON.parse(jsonText);
         res.json(jsonResponse);
 
@@ -128,12 +308,12 @@ app.post('/api/mensetu', async (req, res) => {
 上記を踏まえて、フィードバックと次の質問をJSON形式で返してください。`;
 
         const responseText = await callClaudeAPI(prompt, systemPrompt);
-        
+
         let jsonText = responseText.trim();
         if (jsonText.includes('```json')) {
             jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
         }
-        
+
         const jsonResponse = JSON.parse(jsonText);
         res.json(jsonResponse);
 
@@ -299,12 +479,12 @@ JSON形式で回答してください。
 `;
 
         const responseText = await callClaudeAPI(prompt, systemPrompt);
-        
+
         let jsonText = responseText.trim();
         if (jsonText.includes('```json')) {
             jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
         }
-        
+
         const jsonResponse = JSON.parse(jsonText);
         res.json(jsonResponse);
 

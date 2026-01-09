@@ -309,35 +309,13 @@ async function callGeminiApi() {
 }
 
 // ★ 履歴保存関数 ★
-function saveHistory(data) {
-    try {
-        const SESSION_KEY = 'career_app_session';
-        const HISTORY_KEY_PREFIX = 'career_app_history_';
+// ★ 履歴保存関数 (Auth経由) ★
+async function saveHistory(data) {
+    const title = `総合評価: ${data.overallScore}点`;
+    const summary = `場面: ${selectedScene} / 服装: ${selectedAttire}`;
+    const detail = data;
 
-        const user = JSON.parse(localStorage.getItem(SESSION_KEY));
-        if (!user) return; // ログインしていなければ保存しない
-
-        const key = HISTORY_KEY_PREFIX + user.id;
-        const histories = JSON.parse(localStorage.getItem(key) || '[]');
-
-        const now = new Date();
-        const dateStr = now.getFullYear() + '/' + (now.getMonth() + 1) + '/' + now.getDate() + ' ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
-
-        const newHistory = {
-            id: Date.now(),
-            type: 'camera',
-            date: dateStr,
-            title: `総合評価: ${data.overallScore}点`,
-            summary: `場面: ${selectedScene} / 服装: ${selectedAttire}`,
-            detail: data
-        };
-
-        histories.push(newHistory);
-        localStorage.setItem(key, JSON.stringify(histories));
-
-    } catch (e) {
-        console.error("Save history failed", e);
-    }
+    await Auth.addHistory('camera', title, summary, detail);
 }
 
 // --- 結果表示 ---
