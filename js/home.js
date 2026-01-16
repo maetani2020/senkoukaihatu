@@ -561,6 +561,7 @@ document.getElementById('doRegisterBtn').addEventListener('click', async () => {
             document.getElementById('regName').value = '';
             document.getElementById('regEmail').value = '';
             document.getElementById('regPassword').value = '';
+            Auth.updateUI();
         }
     } else { alert('すべての項目を入力してください。'); }
 });
@@ -573,6 +574,7 @@ document.getElementById('doLoginBtn').addEventListener('click', async () => {
             authModalCtrl.close();
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
+            Auth.updateUI();
         }
     } else { alert('すべての項目を入力してください。'); }
 });
